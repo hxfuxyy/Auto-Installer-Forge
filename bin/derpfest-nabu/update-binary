@@ -1,4 +1,9 @@
 #!/sbin/sh
+#
+# Copyright (C) 2025-26 https://github.com/ArKT-7
+#
+# Made for flash Android rom in recovery for Xiaomi Pad 5 (Nabu)
+#
 
 UPD_ZIP="$3"
 UPD_INTERFACE="/proc/self/fd/$2"
@@ -101,10 +106,10 @@ check_file_and_hash() {
 
     if ! unzip -l "$UPD_ZIP" | grep -q " $file_path$"; then
 	    ui_print " "
-        ui_print " Error: $file_path not found in the auto-installer pakage!"
+        ui_print " Error: $file_path not found in the auto-installer package!"
 		ui_print " "
         ui_print " Your download may be corrupted. Please download again."
-        ui_print " If the issue persists, send a screenshot in the group for help."
+        ui_print " If the issue persists, pls send a screenshot in the group for help."
 		ui_print ""
         exit 1
     fi
@@ -115,10 +120,10 @@ check_file_and_hash() {
         ui_print " SHA-256 mismatch for $file_path!"
 	ui_print " "
         ui_print " Expected: $expected_hash"
-        ui_print " Got:      $actual_hash"
+        ui_print " Got: $actual_hash"
 	ui_print " "
         ui_print " Your download may be corrupted. Please download again."
-        ui_print " If the issue persists, send a screenshot in the group for help."
+        ui_print " If the issue persists, pls send a screenshot in the group for help."
 	ui_print " "
         exit 1
     fi
@@ -128,14 +133,13 @@ check_file_and_hash() {
 
 check_file() {
     local file_path="$1"
-    #local expected_hash="$2"
 
     if ! unzip -l "$UPD_ZIP" | grep -q " $file_path$"; then
 	    ui_print " "
-        ui_print " Error: $file_path not found in the auto-installer pakage!"
+        ui_print " Error: $file_path not found in the auto-installer package!"
 		ui_print " "
         ui_print " Your download may be corrupted. Please download again."
-        ui_print " If the issue persists, send a screenshot in the group for help."
+        ui_print " If the issue persists, pls send a screenshot in the group for help."
 		ui_print ""
         exit 1
     fi
