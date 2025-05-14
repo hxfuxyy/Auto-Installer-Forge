@@ -514,9 +514,9 @@ download_with_fallback \
     "KSU-N"
 
 download_with_fallback \
-    "https://github.com/topjohnwu/Magisk/releases/download/v28.1/Magisk-v28.1.apk" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/files/Magisk_v28.1.apk" \
-    "$TARGET_DIR/ROOT_APK_INSATLL_THIS_ONLY/Magisk_v28.1.apk" \
+    "https://github.com/topjohnwu/Magisk/releases/download/v29.0/Magisk-v29.0.apk" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/files/Magisk_v29.0.apk" \
+    "$TARGET_DIR/ROOT_APK_INSATLL_THIS_ONLY/Magisk_v29.0.apk" \
     "Magisk"
 
 # Call the function
