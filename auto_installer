@@ -5,13 +5,13 @@
 # Made For Processing ROMs containing payload.bin, converts them into a ready-to-flash super.img, and generates a fully automated installation package for Fastboot or Recovery, which can later be flashed using my custom flasher scripts.
 
 # Define URLs and target paths for binaries
-URL_BUSYBOX="https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/busybox"
-URL_PAYLOAD_DUMPER="https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/payload-dumper-go"
-URL_LPMAKE="https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/lpmake"
-URL_LPUNPACK="https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/lpunpack"
+URL_BUSYBOX="https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/linux_arm64/busybox"
+URL_PAYLOAD_DUMPER="https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/linux_arm64/payload-dumper-go"
+URL_LPMAKE="https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/linux_arm64/lpmake"
+URL_LPUNPACK="https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/linux_arm64/lpunpack"
 
-BIN_DIR="/dev/tmp/arkt"
-WORK_DIR="/sdcard/arkt-auto-installer"
+BIN_DIR="/tmp/Auto-Installer-Forge"
+WORK_DIR="/sdcard/Auto-Installer-Forge"
 MAGISK_DIR="$BIN_DIR/magisk_patch"
 
 #mkdir -p "$BIN_DIR"
@@ -118,10 +118,10 @@ download_with_fallback() {
 
 # Function to patch boot.img with magisk
 patch_magisk_boot() {
-    log "[INFO] Patching boot.img with Magisk 29.0...\n"
+    log "[INFO] Patching boot.img with Magisk..\n"
 
     # Unzip only assets and lib folders; if unzip fails, exit
-    if ! $BIN_DIR/busybox unzip -q -o "$TARGET_DIR/ROOT_APK_INSATLL_THIS_ONLY/Magisk_v29.0.apk" "assets/*" "lib/*" -d "$MAGISK_DIR"; then
+    if ! $BIN_DIR/busybox unzip -q -o "$TARGET_DIR/ROOT_APK_INSATLL_THIS_ONLY/$1" "assets/*" "lib/*" -d "$MAGISK_DIR"; then
         log "[ERROR] Failed to unzip Magisk APK"
         return 1
     fi
@@ -167,9 +167,8 @@ patch_magisk_boot() {
     return 0
 }
 
-
-log "[INFO] Automating ROM conversion for easy Fastboot/Recovery flashing for Xiaomi Pad 5 (more devices planned)"
-log "[INFO] this script is Written and Made By °⊥⋊ɹ∀°, Telegram - '@ArKT_7', Github - 'ArKT-7'"
+echo "\nAutomating ROM conversion for easy Fastboot/Recovery flashing for Xiaomi Pad 5 (more devices planned)\n"
+echo "This script is Written and Made By °⊥⋊ɹ∀°, Telegram - '@ArKT_7', Github - 'ArKT-7'\n"
 
 AVAILABLE_SPACE=$(df "$WORK_DIR" | awk 'NR==2 {print $4}')
 if [ "$AVAILABLE_SPACE" -lt 15000000 ]; then
@@ -393,7 +392,7 @@ $BIN_DIR/busybox rm -rf "$TARGET_DIR/super_extracted"
 $BIN_DIR/busybox rm -f "$TARGET_DIR/original_checksums.txt" "$TARGET_DIR/new_checksums.txt" "$TARGET_DIR/original_checksums_norm.txt" "$TARGET_DIR/new_checksums_norm.txt" 
 echo "[SUCCESS] Cleanup complete."
 
-log "[INFO] Now will contrust folder/files and Download Scripts as required for auto-installer!\n[NOTE] Scripts downlaod with Derfest OS (ASCII/name) only (Will add other soon)\n"
+log "[INFO] Now will contrust folder/files and Download Scripts as required for Auto Installer!\n"
 
 $BIN_DIR/busybox mkdir -p "$TARGET_DIR/images" 
 $BIN_DIR/busybox mkdir -p "$TARGET_DIR/META-INF/com/google/android" 
@@ -408,78 +407,83 @@ done
 
 #still gotta upload to mirror location for fallback
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/files/userdata.img" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/files/userdata.img" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/userdata.img" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/userdata.img" \
     "$TARGET_DIR/images/userdata.img" \
-    "userdata"
+    "userdata.img"
 	
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/bootctl" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/bootctl" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/bootctl" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/bootctl" \
     "$TARGET_DIR/META-INF/com/arkt/bootctl" \
     "bootctl"
 
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/busybox" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/busybox" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/busybox" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/busybox" \
     "$TARGET_DIR/META-INF/com/arkt/busybox" \
     "busybox"
 
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/libhidltransport.so" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/libhidltransport.so" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/libhidltransport.so" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/libhidltransport.so" \
     "$TARGET_DIR/META-INF/com/arkt/libhidltransport.so" \
-    "libhidltransport"
+    "libhidltransport.so"
 
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/libhwbinder.so" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/libhwbinder.so" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/libhwbinder.so" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/libhwbinder.so" \
     "$TARGET_DIR/META-INF/com/arkt/libhwbinder.so" \
-    "libhwbinder"
+    "libhwbinder.so"
 
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/derpfest-nabu/update-binary" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/derpfest-nabu/update-binary" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update-binary" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update-binary" \
     "$TARGET_DIR/META-INF/com/google/android/update-binary" \
     "update-binary"
 	
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/derpfest-nabu/updater-script" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/derpfest-nabu/updater-script" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/updater-script" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/updater-script" \
     "$TARGET_DIR/META-INF/com/google/android/updater-script" \
     "updater-script"
-	
-download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/derpfest-nabu/install_derpfest_linux.sh" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/derpfest-nabu/install_derpfest_linux.sh" \
-    "$TARGET_DIR/install_derpfest_linux.sh" \
-    "install-derpfest-linux-script"
-	
-download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/derpfest-nabu/install_derpfest_windows.bat" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/derpfest-nabu/install_derpfest_windows.bat" \
-    "$TARGET_DIR/install_derpfest_windows.bat" \
-    "install-derpfest-windows-script"
-	
-download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/derpfest-nabu/update_derpfest_linux.sh" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/derpfest-nabu/update_derpfest_linux.sh" \
-    "$TARGET_DIR/update_derpfest_linux.sh" \
-    "update-derpfest-linux-script"
-	
-download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/derpfest-nabu/update_derpfest_windows.bat" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/derpfest-nabu/update_derpfest_windows.bat" \
-    "$TARGET_DIR/update_derpfest_windows.bat" \
-    "update-derpfest-windows-script"
 
-log "[INFO] Downloading Platform-tools and required tools for auto-installer script...\n"
+download_with_fallback \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/autoinstaller.conf" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/autoinstaller.conf" \
+    "$TARGET_DIR/META-INF/autoinstaller.conf" \
+	
+download_with_fallback \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/install_forge_linux.sh" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/install_forge_linux.sh" \
+    "$TARGET_DIR/install_forge_linux.sh" \
+    "install_forge_linux.sh"
+	
+download_with_fallback \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/install_forge_windows.bat" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/install_forge_windows.bat" \
+    "$TARGET_DIR/install_forge_windows.bat" \
+    "install_forge_windows.bat"
+	
+download_with_fallback \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update_forge_linux.sh" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update_forge_linux.sh" \
+    "$TARGET_DIR/update_forge_linux.sh" \
+    "update_forge_linux.sh"
+	
+download_with_fallback \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update_forge_windows.bat" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update_forge_windows.bat" \
+    "$TARGET_DIR/update_forge_windows.bat" \
+    "update_forge_windows.bat"
+
+log "[INFO] Downloading Platform-tools and required tools for Auto-Installer-Forge script...\n"
 
 download_with_fallback \
     "https://dl.google.com/android/repository/platform-tools-latest-linux.zip" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/files/platform-tools-latest-linux.zip" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/platform-tools-latest-linux.zip" \
     "$TARGET_DIR/bin/linux/platform-tools-linux.zip" \
-    "pt-linux"
+    "platform-tools-latest-linux.zip"
 	
 echo "[INFO] Extracting Linux platform-tools..."
 $BIN_DIR/busybox unzip -q "$TARGET_DIR/bin/linux/platform-tools-linux.zip" -d "$TARGET_DIR/bin/linux/"
@@ -487,19 +491,19 @@ log "[SUCCESS] Linux platform-tools extracted.\n"
 
 download_with_fallback \
     "https://dl.google.com/android/repository/platform-tools-latest-windows.zip" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/files/platform-tools-latest-windows.zip" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/platform-tools-latest-windows.zip" \
     "$TARGET_DIR/bin/windows/platform-tools-windows.zip" \
-    "pt-win"
-	
+    "platform-tools-latest-windows.zip"
+
 echo "[INFO] Extracting Windows platform-tools..."
 $BIN_DIR/busybox unzip -q "$TARGET_DIR/bin/windows/platform-tools-windows.zip" -d "$TARGET_DIR/bin/windows/"
 log "[SUCCESS] Windows platform-tools extracted.\n"
 
 download_with_fallback \
     "https://github.com/dEajL3kA/tee-win32/releases/download/1.3.3/tee-win32.2023-11-27.zip" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/files/tee-win32.2023-11-27.zip" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/tee-win32.2023-11-27.zip" \
     "$TARGET_DIR/bin/windows/tee.zip" \
-    "tee"
+    "tee-win32.2023-11-27.zip"
 	
 echo "[INFO] Extracting tee for logging in windows..."
 $BIN_DIR/busybox unzip -q "$TARGET_DIR/bin/windows/tee.zip" -d "$TARGET_DIR/bin/windows/log-tool/"
@@ -508,19 +512,19 @@ log "[SUCCESS] TEE for windows extracted."
 log "[INFO] Now will Download KernelSU NEXT and Magisk APK for ROOT access!\n[NOTE] Manually Add Patched ksu-n_boot.img, ksu-n_dtbo.img and magisk_boot.img in /images folder\n"
 
 download_with_fallback \
-    "https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.6/KernelSU_Next_v1.0.6_12490-release.apk" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/files/KernelSU_Next_v1.0.6.apk" \
-    "$TARGET_DIR/ROOT_APK_INSATLL_THIS_ONLY/KernelSU_Next_v1.0.6.apk" \
-    "KSU-N"
+    "https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.7/KernelSU_Next_v1.0.7_12602-release.apk" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/KernelSU_Next_v1.0.7.apk" \
+    "$TARGET_DIR/ROOT_APK_INSATLL_THIS_ONLY/KernelSU_Next_v1.0.7.apk" \
+    "KernelSU_Next_v1.0.7.apk"
 
 download_with_fallback \
     "https://github.com/topjohnwu/Magisk/releases/download/v29.0/Magisk-v29.0.apk" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/files/Magisk_v29.0.apk" \
+    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/Magisk_v29.0.apk" \
     "$TARGET_DIR/ROOT_APK_INSATLL_THIS_ONLY/Magisk_v29.0.apk" \
-    "Magisk"
+    "Magisk-v29.0.apk"
 
 # Call the function
-patch_magisk_boot
+patch_magisk_boot "Magisk_v29.0.apk"
 
 
 log "[INFO] Cleaning up..."
@@ -529,4 +533,4 @@ cd
 rm -rf $BIN_DIR
 echo "[SUCCESS] Cleanup complete."
 
-log "[COMPLETED] Auto-installer process finished successfully!"
+log "[COMPLETED] Auto-Installer-Forge process finished successfully!\n"
