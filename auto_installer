@@ -5,10 +5,11 @@
 # Made For Processing ROMs containing payload.bin, converts them into a ready-to-flash super.img, and generates a fully automated installation package for Fastboot or Recovery, which can later be flashed using my custom flasher scripts.
 
 # Define URLs and target paths for binaries
-URL_BUSYBOX="https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/linux_arm64/busybox"
-URL_PAYLOAD_DUMPER="https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/linux_arm64/payload-dumper-go"
-URL_LPMAKE="https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/linux_arm64/lpmake"
-URL_LPUNPACK="https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/linux_arm64/lpunpack"
+BASE_URL="https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main"
+URL_BUSYBOX="$BASE_URL/bin/linux_arm64/busybox"
+URL_PAYLOAD_DUMPER="$BASE_URL/bin/linux_arm64/payload-dumper-go"
+URL_LPMAKE="$BASE_URL/bin/linux_arm64/lpmake"
+URL_LPUNPACK="$BASE_URL/bin/linux_arm64/lpunpack"
 
 BIN_DIR="/tmp/Auto-Installer-Forge"
 WORK_DIR="/sdcard/Auto-Installer-Forge"
@@ -29,7 +30,7 @@ ARCH=$(getprop ro.product.cpu.abi)
 download_and_set_permissions() {
     local url=$1 dest_file=$2
     log "[INFO] Downloading $(basename "$dest_file")..."
-    curl -L --progress-bar -o "$dest_file" "$url" || { log "[ERROR] Failed to download $(basename "$dest_file")"; exit 1; }
+    curl -L -# -o "$dest_file" "$url" || { log "[ERROR] Failed to download $(basename "$dest_file")"; exit 1; }
     chmod 755 "$dest_file"
     echo "[SUCCESS] $(basename "$dest_file") ready."
 }
@@ -38,7 +39,7 @@ download_and_set_permissions() {
 download_file() {
     local url=$1 dest_file=$2
     #echo "[INFO] Downloading $(basename "$dest_file")..."
-    curl -L --progress-bar -o "$dest_file" "$url" || { log "[ERROR] Failed to download $(basename "$dest_file")"; }
+    curl -L -# -o "$dest_file" "$url" || { log "[ERROR] Failed to download $(basename "$dest_file")"; }
     echo "[SUCCESS] $(basename "$dest_file") downloaded."
 }
 
@@ -177,7 +178,7 @@ update_field() {
 
     comment=$(echo "$line" | $BIN_DIR/busybox sed -n "s/^$field=\"[^\"]*\"[[:space:]]*\(.*\)/\1/p")
 
-    echo "Current $label: \"$value\""
+    echo "Current $label: $value"
     printf "Enter new $label (leave blank to keep current): "
     read new_value
 
@@ -190,7 +191,7 @@ update_field() {
 
     $BIN_DIR/busybox sed -i "s|^$field=.*|$new_line|" "$CONF_FILE"
 
-    echo "$label updated to: \"$new_value\""
+    echo "$label updated to: $new_value"
     echo
 }
 
@@ -214,7 +215,7 @@ CHECKSUM_AVAILABLE=1  # Assume checksum is available
 
 # Download checksum file
 #echo "[INFO] Downloading checksum file..."
-if ! download_file "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/bin/checksum.arkt" "$CHECKSUM_FILE"; then
+if ! download_file "$BASE_URL/bin/checksum.arkt" "$CHECKSUM_FILE"; then
     #echo "[WARNING] Failed to download checksum file. Continuing without checksum verification!"
     CHECKSUM_AVAILABLE=0  # Set flag to disable checksum verification
 elif ! grep -q "=" "$CHECKSUM_FILE"; then
@@ -434,73 +435,73 @@ done
 
 #still gotta upload to mirror location for fallback
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/userdata.img" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/userdata.img" \
+    "$BASE_URL/files/userdata.img" \
+    "$BASE_URL/files/userdata.img" \
     "$TARGET_DIR/images/userdata.img" \
     "userdata.img"
 	
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/bootctl" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/bootctl" \
+    "$BASE_URL/auto-installer-scripts/bin/bootctl" \
+    "$BASE_URL/auto-installer-scripts/bin/bootctl" \
     "$TARGET_DIR/META-INF/com/arkt/bootctl" \
     "bootctl"
 
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/busybox" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/busybox" \
+    "$BASE_URL/auto-installer-scripts/bin/busybox" \
+    "$BASE_URL/auto-installer-scripts/bin/busybox" \
     "$TARGET_DIR/META-INF/com/arkt/busybox" \
     "busybox"
 
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/libhidltransport.so" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/libhidltransport.so" \
+    "$BASE_URL/auto-installer-scripts/bin/libhidltransport.so" \
+    "$BASE_URL/auto-installer-scripts/bin/libhidltransport.so" \
     "$TARGET_DIR/META-INF/com/arkt/libhidltransport.so" \
     "libhidltransport.so"
 
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/libhwbinder.so" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/libhwbinder.so" \
+    "$BASE_URL/auto-installer-scripts/bin/libhwbinder.so" \
+    "$BASE_URL/auto-installer-scripts/bin/libhwbinder.so" \
     "$TARGET_DIR/META-INF/com/arkt/libhwbinder.so" \
     "libhwbinder.so"
 
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update-binary" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update-binary" \
+    "$BASE_URL/auto-installer-scripts/update-binary" \
+    "$BASE_URL/auto-installer-scripts/update-binary" \
     "$TARGET_DIR/META-INF/com/google/android/update-binary" \
     "update-binary"
 	
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/updater-script" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/updater-script" \
+    "$BASE_URL/auto-installer-scripts/updater-script" \
+    "$BASE_URL/auto-installer-scripts/updater-script" \
     "$TARGET_DIR/META-INF/com/google/android/updater-script" \
     "updater-script"
 
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/autoinstaller.conf" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/autoinstaller.conf" \
+    "$BASE_URL/auto-installer-scripts/autoinstaller.conf" \
+    "$BASE_URL/auto-installer-scripts/autoinstaller.conf" \
     "$TARGET_DIR/META-INF/autoinstaller.conf" \
 
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/install_forge_linux.sh" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/install_forge_linux.sh" \
+    "$BASE_URL/auto-installer-scripts/install_forge_linux.sh" \
+    "$BASE_URL/auto-installer-scripts/install_forge_linux.sh" \
     "$TARGET_DIR/install_forge_linux.sh" \
     "install_forge_linux.sh"
 	
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/install_forge_windows.bat" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/install_forge_windows.bat" \
+    "$BASE_URL/auto-installer-scripts/install_forge_windows.bat" \
+    "$BASE_URL/auto-installer-scripts/install_forge_windows.bat" \
     "$TARGET_DIR/install_forge_windows.bat" \
     "install_forge_windows.bat"
 	
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update_forge_linux.sh" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update_forge_linux.sh" \
+    "$BASE_URL/auto-installer-scripts/update_forge_linux.sh" \
+    "$BASE_URL/auto-installer-scripts/update_forge_linux.sh" \
     "$TARGET_DIR/update_forge_linux.sh" \
     "update_forge_linux.sh"
 	
 download_with_fallback \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update_forge_windows.bat" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update_forge_windows.bat" \
+    "$BASE_URL/auto-installer-scripts/update_forge_windows.bat" \
+    "$BASE_URL/auto-installer-scripts/update_forge_windows.bat" \
     "$TARGET_DIR/update_forge_windows.bat" \
     "update_forge_windows.bat"
 
@@ -508,7 +509,7 @@ log "[INFO] Downloading Platform-tools and required tools for Auto-Installer-For
 
 download_with_fallback \
     "https://dl.google.com/android/repository/platform-tools-latest-linux.zip" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/platform-tools-latest-linux.zip" \
+    "$BASE_URL/files/platform-tools-latest-linux.zip" \
     "$TARGET_DIR/bin/linux/platform-tools-linux.zip" \
     "platform-tools-latest-linux.zip"
 	
@@ -518,7 +519,7 @@ log "[SUCCESS] Linux platform-tools extracted.\n"
 
 download_with_fallback \
     "https://dl.google.com/android/repository/platform-tools-latest-windows.zip" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/platform-tools-latest-windows.zip" \
+    "$BASE_URL/files/platform-tools-latest-windows.zip" \
     "$TARGET_DIR/bin/windows/platform-tools-windows.zip" \
     "platform-tools-latest-windows.zip"
 
@@ -528,7 +529,7 @@ log "[SUCCESS] Windows platform-tools extracted.\n"
 
 download_with_fallback \
     "https://github.com/dEajL3kA/tee-win32/releases/download/1.3.3/tee-win32.2023-11-27.zip" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/tee-win32.2023-11-27.zip" \
+    "$BASE_URL/files/tee-win32.2023-11-27.zip" \
     "$TARGET_DIR/bin/windows/tee.zip" \
     "tee-win32.2023-11-27.zip"
 	
@@ -540,13 +541,13 @@ log "[INFO] Now will Download KernelSU NEXT and Magisk APK for ROOT access!\n[NO
 
 download_with_fallback \
     "https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.7/KernelSU_Next_v1.0.7_12602-release.apk" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/KernelSU_Next_v1.0.7.apk" \
+    "$BASE_URL/files/KernelSU_Next_v1.0.7.apk" \
     "$TARGET_DIR/ROOT_APK_INSATLL_THIS_ONLY/KernelSU_Next_v1.0.7.apk" \
     "KernelSU_Next_v1.0.7.apk"
 
 download_with_fallback \
     "https://github.com/topjohnwu/Magisk/releases/download/v29.0/Magisk-v29.0.apk" \
-    "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/Magisk_v29.0.apk" \
+    "$BASE_URL/files/Magisk_v29.0.apk" \
     "$TARGET_DIR/ROOT_APK_INSATLL_THIS_ONLY/Magisk_v29.0.apk" \
     "Magisk-v29.0.apk"
 
@@ -591,6 +592,28 @@ update_field "DEVICE_NAME" "Device name"
 update_field "BUILD_DATE" "Build date"
 update_field "SECURITY_PATCH" "Security patch"
 update_field "ROM_VERSION" "ROM Build version"
+
+# Extract ROM_NAME line from config
+line=$(grep "^ROM_NAME=" "$CONF_FILE")
+
+# Extract value and optional comment
+value=$(echo "$line" | $BIN_DIR/busybox sed -n 's/^ROM_NAME="\([^"]*\)".*/\1/p')
+comment=$(echo "$line" | $BIN_DIR/busybox sed -n 's/^ROM_NAME="[^"]*"[[:space:]]*\(.*\)/\1/p')
+#echo "Current ROM Name: $value"
+#echo "Sanitized: $(echo "$value" | $BIN_DIR/busybox tr ' ' '_' | $BIN_DIR/busybox tr -cd '[:alnum:]_-')"
+
+# Sanitize ROM name by removing non-alphanum and replace space with _ underscore
+sanitized_name=$(echo "$value" | $BIN_DIR/busybox tr ' ' '_' | $BIN_DIR/busybox tr -cd '[:alnum:]_-')
+
+# Rename auto-insatller scripts file with new rom name
+for base in install_forge_linux.sh update_forge_linux.sh install_forge_windows.bat update_forge_windows.bat; do
+  src="$TARGET_DIR/$base"
+  if [ -f "$src" ]; then
+    new_name=$(echo "$base" | $BIN_DIR/busybox sed "s/forge/$sanitized_name/")
+    $BIN_DIR/busybox mv "$src" "$TARGET_DIR/$new_name"
+    #echo "Renamed: $base → $new_name"
+  fi
+done
 
 log "[INFO] Cleaning up..."
 $BIN_DIR/busybox rm -f "$tmp_hashes" "$TARGET_DIR/bin/linux/platform-tools-linux.zip" "$TARGET_DIR/bin/windows/platform-tools-windows.zip" "$TARGET_DIR/bin/windows/tee.zip"
