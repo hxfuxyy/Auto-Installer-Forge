@@ -265,6 +265,106 @@ function Get-PayloadZipPath {
     }
 }
 
+function Update-Field {
+    param (
+        [string]$ConfFile,
+        [string]$Field,
+        [string]$Label
+    )
+    $lines = @(Get-Content -Path $ConfFile)
+    $lineIndex = $null
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match "^$Field=") {
+            $lineIndex = $i
+            break
+        }
+    }
+    if ($null -eq $lineIndex) {
+        print "Field $Field not found in $ConfFile"
+        return
+    }
+    $line = $lines[$lineIndex]
+    if ($line -match "^$Field=`"([^`"]*)`"") {
+        $value = $matches[1]
+    } else {
+        $value = ""
+    }
+    print "Current ${Label}: $value"
+    $newValue = Prompt "Enter new ${Label} (leave blank to keep current): "
+    if ([string]::IsNullOrEmpty($newValue)) {
+        $newValue = $value
+    }
+    $lines[$lineIndex] = $lines[$lineIndex] -replace "^$Field=`"[^`"]*`"", "$Field=`"$newValue`""
+    $lines | Set-Content -Path $ConfFile -Encoding UTF8
+    print "${Label} updated to: $newValue`n"
+}
+
+function Update-HashPairs {
+    param (
+        [string]$ConfFile,
+        [string]$ImagesDir
+    )
+    $lines = @(Get-Content -Path $ConfFile -Encoding UTF8)
+    $startIdx = $null
+    $endIdx = $null
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match '^\s*HASH_PAIRS=\(\s*$') {
+            $startIdx = $i
+        }
+        elseif ($null -ne $startIdx -and $lines[$i] -match '^\s*\)\s*$') {
+            $endIdx = $i
+            break
+        }
+    }
+    if ($null -eq $startIdx -or $null -eq $endIdx) {
+        Write-Host "HASH_PAIRS block not found in $ConfFile"
+        return
+    }
+    $before = $lines[0..$startIdx]
+    $after = $lines[$endIdx..($lines.Count - 1)]
+    $newHashLines = @()
+    Get-ChildItem -Path $ImagesDir -Filter *.img | Where-Object { $_.Name -ne "super.img" } | ForEach-Object {
+        $hash = (Get-FileHash $_.FullName -Algorithm SHA1).Hash.ToLower()
+        $newHashLines += "  `"images/$($_.Name)`" `"$hash`""
+    }
+    $final = $before + $newHashLines + $after
+    $final | Set-Content -Path $ConfFile -Encoding UTF8
+    #print "HASH_PAIRS updated in $ConfFile"
+}
+function Rename-InstallerScripts {
+    param (
+        [string]$ConfFile,
+        [string]$TargetDir
+    )
+    $lines = @(Get-Content -Path $ConfFile -Encoding UTF8)
+    $romLine = $lines | Where-Object { $_ -match '^ROM_NAME="' }
+    if (-not $romLine) {
+        Write-Host "ROM_NAME not found in $ConfFile"
+        return
+    }
+    # Extract ROM_NAME value
+    if ($romLine -match '^ROM_NAME="([^"]+)"') {
+        $romName = $matches[1]
+    } else {
+        $romName = ""
+    }
+    $sanitized = ($romName -replace ' ', '_') -replace '[^a-zA-Z0-9_-]', ''
+    $scriptFiles = @(
+        "install_forge_linux.sh",
+        "update_forge_linux.sh",
+        "install_forge_windows.bat",
+        "update_forge_windows.bat"
+    )
+    foreach ($file in $scriptFiles) {
+        $src = Join-Path $TargetDir $file
+        if (Test-Path $src) {
+            $newName = $file -replace 'forge', $sanitized
+            Rename-Item -Path $src -NewName $newName
+            #print "Renamed: $file -> $newName"
+        }
+    }
+}
+
 print "`n`nAutomating ROM conversion for easy Fastboot/Recovery flashing for Xiaomi Pad 5 (more devices planned)`n"
 print "This script is Written and Made By ArKT, Telegram - '@ArKT_7', Github - 'ArKT-7'"
 
@@ -482,6 +582,7 @@ foreach ($dir in $dirsToCreate) {
 Download $autoinstallerfiles $targetFolderPath
 
 & "$busyboxPath" mv "$targetFolderPath/autoinstaller.conf" "$targetFolderPath/META-INF"
+$confFile = Join-Path (Join-Path $targetFolderPath 'META-INF') 'autoinstaller.conf'
 & "$busyboxPath" mv "$targetFolderPath/userdata.img" "$imagesFolderPath"
 $files = @("update-binary", "updater-script")
 foreach ($file in $files) {
@@ -507,10 +608,23 @@ nl 2
 lognl "[INFO] Now will Download KernelSU NEXT and Magisk APK for ROOT access!" Cyan
 log "[NOTE] Manually Add Patched ksu-n_boot.img in /images folder and add options to autoinstaller.conf file" Yellow
 Download $rootapkfiles (Join-Path $targetFolderPath $dirsToCreate[5])
+nl 2
+lognl "[SUCCESS] Auto-Installer-Forge files processing finished!" Cyan
+log "[INFO] Now, let's update configration file for this rom!`n`n"Yellow
+Update-HashPairs $confFile $imagesFolderPath
+Update-Field $confFile "DEVICE_CODE" "Device code"
+Update-Field $confFile "ROM_NAME" "ROM name"
+Update-Field $confFile "ROM_MAINTAINER" "ROM maintainer"
+Update-Field $confFile "ANDROID_VER" "Android version"
+Update-Field $confFile "DEVICE_NAME" "Device name"
+Update-Field $confFile "BUILD_DATE" "Build date"
+Update-Field $confFile "SECURITY_PATCH" "Security patch"
+Update-Field $confFile "ROM_VERSION" "ROM Build version"
+Rename-InstallerScripts $confFile $targetFolderPath
 
-print "`n`n`n===========================================" DarkCyan
-print "Autoinstaller process completed successfully!" Yellow
-print "===========================================`n" DarkCyan
+print "`n[NOTE] you can also change configrations in META-INF/autoinstaller.conf file anytime!`n" Yellow
+print "`n==================================================" DarkCyan
+print "Auto-Installer-Forge process finished successfully!" Yellow
+print "===================================================`n" DarkCyan
 Remove-Item -Path $binsDir -Recurse -Force
-
 exit
