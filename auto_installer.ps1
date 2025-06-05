@@ -481,7 +481,7 @@ foreach ($dir in $dirsToCreate) {
 }
 Download $autoinstallerfiles $targetFolderPath
 
-& "$busyboxPath" mv "$targetFolderPath/autoinstaller.conf" "$targetFolderPath/bin"
+& "$busyboxPath" mv "$targetFolderPath/autoinstaller.conf" "$targetFolderPath/META-INF"
 & "$busyboxPath" mv "$targetFolderPath/userdata.img" "$imagesFolderPath"
 $files = @("update-binary", "updater-script")
 foreach ($file in $files) {
