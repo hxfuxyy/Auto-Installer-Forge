@@ -613,7 +613,7 @@ for base in install_forge_linux.sh update_forge_linux.sh install_forge_windows.b
     $BIN_DIR/busybox mv "$src" "$TARGET_DIR/$new_name"
     #echo "Renamed: $base → $new_name"
   fi
-  $BIN_DIR/busybox dos2unix "$TARGET_DIR/*.sh"
+  $BIN_DIR/busybox dos2unix $TARGET_DIR/*.sh
 done
 $BIN_DIR/busybox dos2unix "$CONF_FILE"
 log "[INFO] Cleaning up..."
