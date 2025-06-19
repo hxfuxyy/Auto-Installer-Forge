@@ -1,5 +1,4 @@
 # Auto-Installer-Forge
-## WIP for linux and windows pc
 An automated tool that processes ROMs containing **payload.bin**, converts them into a ready-to-flash **super.img**, and generates a fully automated installation package for Fastboot or Recovery, which can later be flashed using my custom flasher scripts.
 
 #### For android shell arm64 - copy and paste in termux or adb shell with root access to termux/shell app
