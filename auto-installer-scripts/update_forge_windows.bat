@@ -3,7 +3,6 @@
 ::
 :: Made for flashing Android ROMs easily
 ::
-
 @echo off
 setlocal enabledelayedexpansion
 title Auto Installer 3.0

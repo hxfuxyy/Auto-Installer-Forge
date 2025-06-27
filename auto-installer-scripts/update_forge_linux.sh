@@ -4,7 +4,6 @@
 #
 # Made for flashing Android ROMs easily
 #
-
 cd "$(dirname "$0")"
 
 ESC="\033"
