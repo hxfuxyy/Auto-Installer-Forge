@@ -363,10 +363,15 @@ function Rename-InstallerScripts {
             #print "Renamed: $file -> $newName"
         }
     }
-    # Only convert .sh files to Unix format
-    Get-ChildItem -Path $TargetDir -Filter "*.sh" | ForEach-Object {
-        & "$busyboxPath" dos2unix $_.FullName
-    }
+	# Convert .sh and .bat files using busybox dos2unix
+	Get-ChildItem -Path $TargetDir -Include *.sh, *.bat -File | ForEach-Object {
+		if ($_.Extension -ieq ".sh") {
+			& "$busyboxPath" dos2unix $_.FullName
+		}
+		elseif ($_.Extension -ieq ".bat") {
+			& "$busyboxPath" dos2unix -d $_.FullName
+		}
+	}
 }
 
 print "`n`nAutomating ROM conversion for easy Fastboot/Recovery flashing for Xiaomi Pad 5 (more devices planned)`n"

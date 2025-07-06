@@ -615,9 +615,13 @@ for base in install_forge_linux.sh update_forge_linux.sh install_forge_windows.b
   fi
 done
 
-# Only convert .sh files once, after renaming
-for shfile in "$TARGET_DIR"/*.sh; do
-  [ -f "$shfile" ] && $BIN_DIR/busybox dos2unix "$shfile"
+# Convert .sh and .bat files (once, after renaming)
+for file in "$TARGET_DIR"/*.sh "$TARGET_DIR"/*.bat; do
+  [ -f "$file" ] || continue
+  case "$file" in
+    *.sh)  $BIN_DIR/busybox dos2unix "$file" ;;
+    *.bat) $BIN_DIR/busybox dos2unix -d "$file" ;;
+  esac
 done
 
 $BIN_DIR/busybox dos2unix "$CONF_FILE"
