@@ -536,7 +536,7 @@ $BIN_DIR/busybox unzip -q "$TARGET_DIR/bin/linux/platform-tools-linux.zip" -d "$
 log "[SUCCESS] Linux platform-tools extracted.\n"
 
 download_with_fallback \
-    "https://dl.google.com/android/repository/platform-tools-latest-windows.zip" \
+    "$BASE_URL/files/platform-tools-latest-windows.zip" \
     "$BASE_URL/files/platform-tools-latest-windows.zip" \
     "$TARGET_DIR/bin/windows/platform-tools-windows.zip" \
     "platform-tools-latest-windows.zip"
