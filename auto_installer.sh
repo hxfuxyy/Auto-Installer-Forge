@@ -465,6 +465,12 @@ download_with_fallback \
     "userdata.img"
 	
 download_with_fallback \
+    "$BASE_URL/auto-installer-scripts/bin/7zzs" \
+    "$BASE_URL/auto-installer-scripts/bin/7zzs" \
+    "$TARGET_DIR/META-INF/com/arkt/7zzs" \
+    "7zzs"
+
+download_with_fallback \
     "$BASE_URL/auto-installer-scripts/bin/bootctl" \
     "$BASE_URL/auto-installer-scripts/bin/bootctl" \
     "$TARGET_DIR/META-INF/com/arkt/bootctl" \

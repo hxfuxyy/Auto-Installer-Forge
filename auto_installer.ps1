@@ -95,6 +95,7 @@ $autoinstallerfiles = @{
     "userdata.img" = "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/userdata.img"
     "update-binary" = "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update-binary"
     "updater-script" = "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/updater-script"
+    "7zzs" = "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/7zzs"
     "bootctl" = "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/bootctl"
     "busybox" = "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/busybox"
     "libhidltransport.so" = "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/libhidltransport.so"
@@ -600,7 +601,7 @@ $files = @("update-binary", "updater-script")
 foreach ($file in $files) {
     & "$busyboxPath" mv "$targetFolderPath/$file" "$(Join-Path $targetFolderPath $dirsToCreate[0])"
 }
-$files = @("bootctl", "busybox", "libhidltransport.so", "libhwbinder.so", "dmsetup", "make_f2fs", "mke2fs")
+$files = @("7zzs", "bootctl", "busybox", "libhidltransport.so", "libhwbinder.so", "dmsetup", "make_f2fs", "mke2fs")
 foreach ($file in $files) {
     & "$busyboxPath" mv "$targetFolderPath/$file" "$(Join-Path $targetFolderPath $dirsToCreate[1])"
 }
