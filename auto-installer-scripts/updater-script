@@ -82,6 +82,7 @@ if [ "$format" -eq 1 ]; then
 	  "$UPD_TEMP_FOLDER/make_f2fs" -f -g android /dev/block/platform/soc/1d84000.ufshc/by-name/userdata
 	  "$UPD_TEMP_FOLDER/mke2fs" -t ext4 -F /dev/block/platform/soc/1d84000.ufshc/by-name/metadata
 	  "$UPD_TEMP_FOLDER/mke2fs" -t ext4 -F /dev/block/platform/soc/1d84000.ufshc/by-name/cust
+	  package_extract_image "images/empty_frp.img" "/dev/block/platform/soc/1d84000.ufshc/by-name/frp"
       ;;
     1)
       print_centered "Data formatting canceled."

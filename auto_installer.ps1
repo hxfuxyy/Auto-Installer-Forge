@@ -93,6 +93,7 @@ $rootapkfiles = @{
 
 $autoinstallerfiles = @{
     "userdata.img" = "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/userdata.img"
+    "empty_frp.img" = "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/files/empty_frp.img"
     "update-binary" = "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/update-binary"
     "updater-script" = "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/updater-script"
     "7zzs" = "https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto-installer-scripts/bin/7zzs"

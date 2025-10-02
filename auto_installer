@@ -441,6 +441,12 @@ download_with_fallback \
     "userdata.img"
 	
 download_with_fallback \
+    "$BASE_URL/files/empty_frp.img" \
+    "$BASE_URL/files/empty_frp.img" \
+    "$TARGET_DIR/images/empty_frp.img" \
+    "empty_frp.img"
+    
+download_with_fallback \
     "$BASE_URL/auto-installer-scripts/bin/7zzs" \
     "$BASE_URL/auto-installer-scripts/bin/7zzs" \
     "$TARGET_DIR/META-INF/com/arkt/7zzs" \
