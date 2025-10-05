@@ -598,6 +598,7 @@ Download $autoinstallerfiles $targetFolderPath
 & "$busyboxPath" mv "$targetFolderPath/autoinstaller.conf" "$targetFolderPath/META-INF"
 $confFile = Join-Path (Join-Path $targetFolderPath 'META-INF') 'autoinstaller.conf'
 & "$busyboxPath" mv "$targetFolderPath/userdata.img" "$imagesFolderPath"
+& "$busyboxPath" mv "$targetFolderPath/empty_frp.img" "$imagesFolderPath"
 $files = @("update-binary", "updater-script")
 foreach ($file in $files) {
     & "$busyboxPath" mv "$targetFolderPath/$file" "$(Join-Path $targetFolderPath $dirsToCreate[0])"
