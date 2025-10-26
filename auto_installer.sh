@@ -421,37 +421,57 @@ fi
 log "[SUCCESS] Extraction completed."
 
 log "[INFO] Generating original checksums..."
-for img in system vendor odm system_ext product; do
-    $BIN_DIR/busybox mv "$TARGET_DIR/${img}.img" "$TARGET_DIR/${img}_a.img"
+for img in system vendor mi_ext odm system_ext product; do
+    if [ -f "$TARGET_DIR/${img}.img" ]; then
+        $BIN_DIR/busybox mv "$TARGET_DIR/${img}.img" "$TARGET_DIR/${img}_a.img"
+    fi
 done
-$BIN_DIR/busybox sha256sum "$TARGET_DIR/system_a.img" "$TARGET_DIR/vendor_a.img" "$TARGET_DIR/odm_a.img" "$TARGET_DIR/system_ext_a.img" "$TARGET_DIR/product_a.img" > "$TARGET_DIR/original_checksums.txt"
+checksum_files=()
+for img in system vendor mi_ext odm system_ext product; do
+    if [ -f "$TARGET_DIR/${img}_a.img" ]; then
+        checksum_files+=("$TARGET_DIR/${img}_a.img")
+    fi
+done
+$BIN_DIR/busybox sha256sum "${checksum_files[@]}" > "$TARGET_DIR/original_checksums.txt"
 echo -e "[SUCCESS] Checksums generated."
 
 log "[INFO] Calculating total partition size with buffer..."
-TOTAL_SIZE=$($BIN_DIR/busybox du -b "$TARGET_DIR/system_a.img" "$TARGET_DIR/vendor_a.img" "$TARGET_DIR/odm_a.img" "$TARGET_DIR/system_ext_a.img" "$TARGET_DIR/product_a.img" | $BIN_DIR/busybox awk '{sum += $1} END {print sum + (24 * 1024 * 1024); exit}')
+TOTAL_SIZE=$($BIN_DIR/busybox du -b "${checksum_files[@]}" | $BIN_DIR/busybox awk '{sum += $1} END {print sum + (24 * 1024 * 1024); exit}')
 echo -e "Total size (with buffer): $TOTAL_SIZE"
 
 log "[INFO] Creating super.img..."
 echo -e ""
+partition_args=()
+group_a="super_group_a"
+group_b="super_group_b"
+
+add_partition() {
+    local part_name=$1
+    local img_path=$2
+    local part_size=$(wc -c <"$img_path")
+    partition_args+=(--partition "${part_name}_a:readonly:${part_size}:${group_a}")
+    partition_args+=(--image "${part_name}_a=${img_path}")
+    partition_args+=(--partition "${part_name}_b:readonly:0:${group_b}")
+}
+
+if [ -f "$TARGET_DIR/mi_ext_a.img" ]; then
+    add_partition "mi_ext" "$TARGET_DIR/mi_ext_a.img"
+fi
+for img in odm product system system_ext vendor; do
+    if [ -f "$TARGET_DIR/${img}_a.img" ]; then
+        add_partition "$img" "$TARGET_DIR/${img}_a.img"
+    fi
+done
 $BIN_DIR/lpmake \
---metadata-size 65536 \
---metadata-slots 3 \
---device super:9126805504 \
---super-name super \
---group super_group_a:9126805504 \
---group super_group_b:9126805504 \
---partition odm_a:readonly:$(wc -c <"$TARGET_DIR/odm_a.img"):super_group_a --image odm_a="$TARGET_DIR/odm_a.img" \
---partition odm_b:readonly:0:super_group_b \
---partition product_a:readonly:$(wc -c <"$TARGET_DIR/product_a.img"):super_group_a --image product_a="$TARGET_DIR/product_a.img" \
---partition product_b:readonly:0:super_group_b \
---partition system_a:readonly:$(wc -c <"$TARGET_DIR/system_a.img"):super_group_a --image system_a="$TARGET_DIR/system_a.img" \
---partition system_b:readonly:0:super_group_b \
---partition system_ext_a:readonly:$(wc -c <"$TARGET_DIR/system_ext_a.img"):super_group_a --image system_ext_a="$TARGET_DIR/system_ext_a.img" \
---partition system_ext_b:readonly:0:super_group_b \
---partition vendor_a:readonly:$(wc -c <"$TARGET_DIR/vendor_a.img"):super_group_a --image vendor_a="$TARGET_DIR/vendor_a.img" \
---partition vendor_b:readonly:0:super_group_b \
---virtual-ab \
---output "$TARGET_DIR/super.img"
+    --metadata-size 65536 \
+    --metadata-slots 3 \
+    --device super:9126805504 \
+    --super-name super \
+    --group ${group_a}:9126805504 \
+    --group ${group_b}:9126805504 \
+    "${partition_args[@]}" \
+    --virtual-ab \
+    --output "$TARGET_DIR/super.img"
 
 log "[SUCCESS] super.img created."
 
@@ -459,8 +479,9 @@ log "[INFO] Truncating super.img..."
 $BIN_DIR/busybox truncate -s "$TOTAL_SIZE" "$TARGET_DIR/super.img"
 echo -e "[SUCCESS] Truncation complete."
 
-log "[INFO] Cleaning up payload.bin extrated img's..."
-$BIN_DIR/busybox rm -f "$TARGET_DIR/system_a.img" "$TARGET_DIR/vendor_a.img" "$TARGET_DIR/odm_a.img" "$TARGET_DIR/system_ext_a.img" "$TARGET_DIR/product_a.img" "$PAYLOAD_FILE" 
+log "[INFO] Cleaning up payload.bin extracted img's..."
+rm_files=("${checksum_files[@]}" "$PAYLOAD_FILE")
+$BIN_DIR/busybox rm -f "${rm_files[@]}"
 echo -e "[SUCCESS] Cleanup complete."
 
 log "[INFO] Extracting super.img..."
@@ -469,7 +490,13 @@ $BIN_DIR/lpunpack "$TARGET_DIR/super.img" "$TARGET_DIR/super_extracted" || { log
 echo -e "[SUCCESS] super.img extracted."
 
 log "[INFO] Generating new checksums..."
-$BIN_DIR/busybox sha256sum "$TARGET_DIR/super_extracted/system_a.img" "$TARGET_DIR/super_extracted/vendor_a.img" "$TARGET_DIR/super_extracted/odm_a.img" "$TARGET_DIR/super_extracted/system_ext_a.img" "$TARGET_DIR/super_extracted/product_a.img" > "$TARGET_DIR/new_checksums.txt"
+new_checksum_files=()
+for img in system vendor mi_ext odm system_ext product; do
+    if [ -f "$TARGET_DIR/super_extracted/${img}_a.img" ]; then
+        new_checksum_files+=("$TARGET_DIR/super_extracted/${img}_a.img")
+    fi
+done
+$BIN_DIR/busybox sha256sum "${new_checksum_files[@]}" > "$TARGET_DIR/new_checksums.txt"
 echo -e "[SUCCESS] Checksums generated."
 
 log "[INFO] Normalizing checksums for comparison..."
