@@ -96,12 +96,6 @@ jobs:
           
           # ASCII art to show first during flashing
           ASCII_ART_LINES=(
-            "  ____                  _____         _   "
-            " |  _ \  ___ _ __ _ __ |  ___|__  ___| |_ "
-            " | | | |/ _ \ '__| '_ \| |_ / _ \/ __| __|"
-            " | |_| |  __/ |  | |_) |  _|  __/\__ \ |_ "
-            " |____/ \___|_|  | .__/|_|  \___||___/\__|"
-            "                 |_|                      "
           )
           
           # List of files and their SHA-1 hashes for verification after extraction
@@ -129,6 +123,17 @@ jobs:
         run: |
           sed -i 's/"Root with No Root"/"No Root"/' input/autoinstaller.conf
     
+      - name: Install figlet for ASCII art
+        run: sudo apt-get update && sudo apt-get install -y figlet
+        
+      - name: Generate and inject ASCII art into config
+        run: |
+          figlet "${{ github.event.inputs.rom_name }}" > asci
+          sed -i 's/`/ /g' asci
+          sed -i 's/^/ " /;s/$/"/' asci
+          sed -i '/ASCII_ART_LINES=(/,/^)/ { /ASCII_ART_LINES=(/!{/^)/!d } }' "input/autoinstaller.conf"
+          sed -i '/ASCII_ART_LINES=(/r asci' "input/autoinstaller.conf"
+
       - name: Run Auto-Installer Forge script
         run: |
           cat input/autoinstaller.conf
