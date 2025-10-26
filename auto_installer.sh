@@ -224,11 +224,16 @@ update_field() {
 
 # Start payload zip selector
 get_payload_zip_path() {
-    echo -e "\nPlease enter the full path to an AOSP ROM ZIP file or a folder containing multiple ROM ZIPs:\n"
-    read -r INPUT_PATH
-    echo -e " "
+    local INPUT_PATH="$1"
+    INPUT_PATH=$(realpath "$INPUT_PATH" 2>/dev/null)
 
-    INPUT_PATH=$(echo "$INPUT_PATH" | sed 's:^~:'"$HOME"':' | sed 's:/*$::')
+    if [ -z "$INPUT_PATH" ] || [ ! -e "$INPUT_PATH" ]; then
+        echo -e "\nPlease enter the full path to an AOSP ROM ZIP file or a folder containing multiple ROM ZIPs:\n"
+        read -r INPUT_PATH
+        echo -e " "
+    fi
+
+    #INPUT_PATH=$(echo "$INPUT_PATH" | sed 's:^~:'"$HOME"':' | sed 's:/*$::')
 
     [ -z "$INPUT_PATH" ] && {
         log "[INFO] No input provided. Exiting...\n"
@@ -374,7 +379,7 @@ if [ -d "$WORK_DIR" ]; then
     fi
 fi
 
-if get_payload_zip_path; then
+if get_payload_zip_path "$1"; then
     log "[INFO] Using payload ZIP: $SELECTED_ZIP_FILE"
     export SELECTED_PAYLOAD_ZIP="$SELECTED_ZIP_FILE"
 else
