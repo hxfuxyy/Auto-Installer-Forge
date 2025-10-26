@@ -19,31 +19,31 @@ jobs:
         id: download
         run: |
           URL="${{ github.event.inputs.rom_zip_url }}"
-          mkdir -p Auto-Installer-Forge/input
-          cd Auto-Installer-Forge/input
+          mkdir -p input
+          cd input
           curl -L -O -J "$URL"
           filename=$(ls -1 *.zip | head -n1)
           if [ -z "$filename" ]; then
             echo "No zip file downloaded!"
             exit 1
           fi
-          echo "Downloaded file: Auto-Installer-Forge/input/$filename"
+          echo "Downloaded file: input/$filename"
           echo "filename=$filename" >> $GITHUB_OUTPUT
 
       - name: Run Auto-Installer Forge script
         run: |
           chmod +x ./auto_installer.sh
-          echo "Using zip file: Auto-Installer-Forge/input/${{ steps.download.outputs.filename }}"
-          bash ./auto_installer.sh "Auto-Installer-Forge/input/${{ steps.download.outputs.filename }}"
+          echo "Using zip file: input/${{ steps.download.outputs.filename }}"
+          bash ./auto_installer.sh "input/${{ steps.download.outputs.filename }}"
 
       - name: Find output subfolder
         id: find_folder
         run: |
-          SUBFOLDER=$(ls -1 Auto-Installer-Forge/out | head -n1)
+          SUBFOLDER=$(ls -1 out | head -n1)
           echo "subfolder=$SUBFOLDER" >> $GITHUB_OUTPUT
 
       - name: Upload Auto-Installer zip file
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.find_folder.outputs.subfolder }}
-          path: Auto-Installer-Forge/out/${{ steps.find_folder.outputs.subfolder }}/**
+          path: out/${{ steps.find_folder.outputs.subfolder }}/**
