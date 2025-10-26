@@ -200,17 +200,22 @@ patch_magisk_boot() {
 update_field() {
     field="$1"
     label="$2"
+    direct_value="$3"
+
     line=$(grep "^$field=" "$CONF_FILE")
 
     value=$(echo -e "$line" | $BIN_DIR/busybox sed -n "s/^$field=\"\([^\"]*\)\".*/\1/p")
 
     comment=$(echo -e "$line" | $BIN_DIR/busybox sed -n "s/^$field=\"[^\"]*\"[[:space:]]*\(.*\)/\1/p")
 
-    echo -e "Current $label: $value"
-    printf "Enter new $label (leave blank to keep current): "
-    read new_value
-
-    [ -z "$new_value" ] && new_value="$value"
+    if [ -n "$direct_value" ]; then
+        new_value="$direct_value"
+    else
+        echo -e "Current $label: $value"
+        printf "Enter new $label (leave blank to keep current): "
+        read new_value
+        [ -z "$new_value" ] && new_value="$value"
+    fi
 
     escaped_new_value=$(printf '%s\n' "$new_value" | $BIN_DIR/busybox sed 's/[&/\]/\\&/g')
 
@@ -710,6 +715,14 @@ $BIN_DIR/busybox sed -i '/^HASH_PAIRS=(/,/^)/ {
 $BIN_DIR/busybox sed -i "/^HASH_PAIRS=(/r $tmp_hashes" "$CONF_FILE"
 
 #echo -e "[INFO] HASH_PAIRS inside autoinstaller.conf block updated with current img's in images folder"
+
+# Extract build date
+log "[INFO] Extracting build date from ROM..\n"
+raw_build_date=$(strings "$TARGET_DIR/images/super.img" | grep -m 1 'build.date=' | cut -d'=' -f2)
+parsed_input=$(echo "$raw_build_date" | busybox sed -E 's/ [A-Z]{3} / /')
+parsed_build_date=$(busybox date -d "$parsed_input" -D "%a %b %d %T %Y" +"%d %b %Y")
+echo "Parsed date: $parsed_build_date"
+update_field "BUILD_DATE" "Build date" "$parsed_build_date"
 
 log "[SUCCESS] Auto-Installer-Forge files processing finished!\n"
 

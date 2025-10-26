@@ -32,10 +32,6 @@ on:
         description: 'Device name'
         required: true
         default: 'Xiaomi Pad 5'
-      rom_build_date:
-        description: 'ROM build date (e.g. "07 Nov 2025")'
-        required: true
-        default: '07 Nov 2025'
       security_patch_date:
         description: 'Security patch level date (e.g. "01 Nov 2025")'
         required: true
@@ -94,7 +90,7 @@ jobs:
           ROM_MAINTAINER="${{ github.event.inputs.rom_maintainer }}" # Name or handle of the ROM maintainer
           ANDROID_VER="${{ github.event.inputs.android_ver }}" # Android version
           DEVICE_NAME="${{ github.event.inputs.device_name }}" # Full device name
-          BUILD_DATE="${{ github.event.inputs.rom_build_date }}" # Build date of the ROM
+          BUILD_DATE="07 Nov 2025" # Build date of the ROM
           SECURITY_PATCH="${{ github.event.inputs.security_patch_date }}" # Security patch level of the ROM
           ROM_VERSION="${{ github.event.inputs.rom_version }}" # ROM version/build identifier
           
@@ -112,6 +108,7 @@ jobs:
           # Format: "path/to/file.img" inside the auto-installer folder and "expected_sha1"
           HASH_PAIRS=(
           )
+          
           # Options for rooting, presented to the user, first option will be default
           # Format: "Display Name" "corresponding_boot_image_filename (without .img)"
           root_options_filename=(
