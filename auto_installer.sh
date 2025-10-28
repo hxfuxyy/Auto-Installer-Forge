@@ -719,8 +719,8 @@ $BIN_DIR/busybox sed -i "/^HASH_PAIRS=(/r $tmp_hashes" "$CONF_FILE"
 # Extract build date
 log "[INFO] Extracting build date from ROM..\n"
 raw_build_date=$(strings "$TARGET_DIR/images/super.img" | grep -m 1 'build.date=' | cut -d'=' -f2)
-parsed_input=$(echo "$raw_build_date" | busybox sed -E 's/ [A-Z]{3} / /')
-parsed_build_date=$(busybox date -d "$parsed_input" -D "%a %b %d %T %Y" +"%d %b %Y")
+parsed_input=$(echo "$raw_build_date" | $BIN_DIR/busybox sed -E 's/ [A-Z]{3} / /')
+parsed_build_date=$($BIN_DIR/busybox date -d "$parsed_input" -D "%a %b %d %T %Y" +"%d %b %Y")
 echo "Parsed date: $parsed_build_date"
 update_field "BUILD_DATE" "Build date" "$parsed_build_date"
 
@@ -741,6 +741,21 @@ else
 	update_field "SECURITY_PATCH" "Security patch"
 	update_field "ROM_VERSION" "ROM Build version"
 fi
+
+# Extract ROM_MAINTAINER value
+maintainer=$(grep '^ROM_MAINTAINER=' "$CONF_FILE" | sed -n 's/^ROM_MAINTAINER="\([^"]*\)".*/\1/p')
+
+# Update in Windows scripts (set ROM_MAINTAINER=...)
+for base in install_forge_windows.bat update_forge_windows.bat; do
+  tgt="$TARGET_DIR/$base"
+  [ -f "$tgt" ] && $BIN_DIR/busybox sed -i "s/^set ROM_MAINTAINER=.*/set ROM_MAINTAINER=$maintainer/" "$tgt"
+done
+
+# Update in Linux scripts (ROM_MAINTAINER="...")
+for base in install_forge_linux.sh update_forge_linux.sh; do
+  tgt="$TARGET_DIR/$base"
+  [ -f "$tgt" ] && $BIN_DIR/busybox sed -i "s/^ROM_MAINTAINER=\".*\"/ROM_MAINTAINER=\"$maintainer\"/" "$tgt"
+done
 
 # Extract ROM_NAME line from config
 line=$(grep "^ROM_NAME=" "$CONF_FILE")
