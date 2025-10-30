@@ -537,10 +537,7 @@ $BIN_DIR/busybox mkdir -p "$TARGET_DIR/bin/windows/platform-tools"
 $BIN_DIR/busybox mkdir -p "$TARGET_DIR/bin/windows/log-tool" 
 $BIN_DIR/busybox mkdir -p "$TARGET_DIR/bin/linux/platform-tools" 
 $BIN_DIR/busybox mkdir -p "$TARGET_DIR/ROOT_APK_INSATLL_THIS_ONLY"
-# for img in boot dtbo vendor_boot vbmeta vbmeta_system super; do
-#     $BIN_DIR/busybox mv "$TARGET_DIR/${img}.img" "$TARGET_DIR/images/${img}.img"
-# done
-"$BIN_DIR/busybox" mv "$TARGET_DIR"/*.img "$TARGET_DIR/images/"
+$BIN_DIR/busybox mv "$TARGET_DIR"/*.img "$TARGET_DIR/images/"
 
 #still gotta upload to mirror location for fallback
 download_with_fallback \
@@ -676,7 +673,7 @@ echo -e "[INFO] Extracting tee for logging in windows..."
 $BIN_DIR/busybox unzip -q "$TARGET_DIR/bin/windows/tee.zip" -d "$TARGET_DIR/bin/windows/log-tool/"
 log "[SUCCESS] TEE for windows extracted."
 
-log "[INFO] Now will Download KernelSU NEXT and Magisk APK for ROOT access!\n[NOTE] Manually Add Patched ksu-n_boot.img and magisk_boot.img in /images folder and add options to autoinstaller.conf file\n"
+log "[INFO] Now will Download KernelSU NEXT and Magisk APK for ROOT access!\n"
 
 download_with_fallback \
     "https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.1.1/KernelSU_Next_v1.1.1_12851-release.apk" \
@@ -791,57 +788,62 @@ case "$ROOT_TYPE" in
     root="Root with (KSU-N - Kernel SU NEXT)"
     ;;
 esac
+
+bases_linux=(install_forge_linux.sh update_forge_linux.sh)
+bases_windows=(install_forge_windows.bat update_forge_windows.bat)
+
+# Update root method in Linux flasher scripts
 $BIN_DIR/busybox sed -i "s|Root with idk|$root|g" "$CONF_FILE"
-for base in install_forge_linux.sh update_forge_linux.sh; do
+for base in "${bases_linux[@]}"; do
   [ -f "$TARGET_DIR/$base" ] && \
   $BIN_DIR/busybox sed -i "s/^root=\".*\"/root=\"$root\"/" "$TARGET_DIR/$base"
 done
-for base in install_forge_windows.bat update_forge_windows.bat; do
+# Update root method in Windows flasher scripts
+for base in "${bases_windows[@]}"; do
   [ -f "$TARGET_DIR/$base" ] && \
   $BIN_DIR/busybox sed -i "s/^set root=.*/set root=$root/" "$TARGET_DIR/$base"
 done
 
-# Extract ROM_MAINTAINER value
+# Extract Rom Maintainer value from config
 maintainer=$(grep '^ROM_MAINTAINER=' "$CONF_FILE" | sed -n 's/^ROM_MAINTAINER="\([^"]*\)".*/\1/p')
 
-# Update in Windows scripts (set ROM_MAINTAINER=...)
-for base in install_forge_windows.bat update_forge_windows.bat; do
-  tgt="$TARGET_DIR/$base"
-  [ -f "$tgt" ] && $BIN_DIR/busybox sed -i "s/^set ROM_MAINTAINER=.*/set ROM_MAINTAINER=$maintainer/" "$tgt"
+# Update Maintainer value in Linux flasher scripts
+for base in "${bases_linux[@]}"; do
+  [ -f "$TARGET_DIR/$base" ] && \
+  $BIN_DIR/busybox sed -i "s/^ROM_MAINTAINER=\".*\"/ROM_MAINTAINER=\"$maintainer\"/" "$TARGET_DIR/$base"
+done
+# Update Maintainer value in Windows flasher scripts
+for base in "${bases_windows[@]}"; do
+  [ -f "$TARGET_DIR/$base" ] && \
+  $BIN_DIR/busybox sed -i "s/^set ROM_MAINTAINER=.*/set ROM_MAINTAINER=$maintainer/" "$TARGET_DIR/$base"
 done
 
-# Update in Linux scripts (ROM_MAINTAINER="...")
-for base in install_forge_linux.sh update_forge_linux.sh; do
-  tgt="$TARGET_DIR/$base"
-  [ -f "$tgt" ] && $BIN_DIR/busybox sed -i "s/^ROM_MAINTAINER=\".*\"/ROM_MAINTAINER=\"$maintainer\"/" "$tgt"
-done
-
-# Extract ROM_NAME line from config
+# Extract ROM Name value from config
 line=$(grep "^ROM_NAME=" "$CONF_FILE")
 
 # Extract value and optional comment
 value=$(echo -e "$line" | $BIN_DIR/busybox sed -n 's/^ROM_NAME="\([^"]*\)".*/\1/p')
-comment=$(echo -e "$line" | $BIN_DIR/busybox sed -n 's/^ROM_NAME="[^"]*"[[:space:]]*\(.*\)/\1/p')
+#comment=$(echo -e "$line" | $BIN_DIR/busybox sed -n 's/^ROM_NAME="[^"]*"[[:space:]]*\(.*\)/\1/p')
 #echo -e "Current ROM Name: $value"
 #echo -e "Sanitized: $(echo -e "$value" | $BIN_DIR/busybox tr ' ' '_' | $BIN_DIR/busybox tr -cd '[:alnum:]_-')"
 
 # Sanitize ROM name by removing non-alphanum and replace space with _ underscore
 sanitized_name=$(echo -e "$value" | $BIN_DIR/busybox tr ' ' '_' | $BIN_DIR/busybox tr -cd '[:alnum:]_-')
 
-# Generate ASCII and replace inside autoinstaller.conf
+# Generate ASCII and replace in autoinstaller.conf
 $BIN_DIR/figlet -f $BIN_DIR/standard.flf -w 100 $value > $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i 's#\\#\\\\#g' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i 's/^/"/;s/$/"/' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '/ASCII_ART_LINES=(/,/^)/ { /ASCII_ART_LINES=(/!{/^)/!d } }' "$CONF_FILE"
 $BIN_DIR/busybox sed -i "/ASCII_ART_LINES=(/r $BIN_DIR/ascii" "$CONF_FILE"
 
-# Generate ASCII and replace inside linux flasher scripts
+# Generate ASCII and replace in Linux flasher scripts
 rm -f $BIN_DIR/ascii
 $BIN_DIR/figlet -f $BIN_DIR/nancyj.flf -w 100 $value > $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '/^[[:space:]]*$/d' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i 's/^/    echo -e " /;s/$/"/' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '1s/^/    echo\n/' $BIN_DIR/ascii
-for base in install_forge_linux.sh update_forge_linux.sh; do
+for base in "${bases_linux[@]}"; do
   [ -f "$TARGET_DIR/$base" ] && \
   $BIN_DIR/busybox sed -i '/print_ascii() {/ { n; N; N; N; N; N; N; d; }' "$TARGET_DIR/$base" && \
   $BIN_DIR/busybox sed -i "/print_ascii()/r $BIN_DIR/ascii" "$TARGET_DIR/$base"
@@ -851,19 +853,19 @@ $BIN_DIR/figlet -f $BIN_DIR/nancyj.flf -w 100 $value > $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '/^[[:space:]]*$/d' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i 's/^/    echo -e " /;s/$/" | tee -a "$log_file"/' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '1s/^/    echo\n/' $BIN_DIR/ascii
-for base in install_forge_linux.sh update_forge_linux.sh; do
+for base in "${bases_linux[@]}"; do
   [ -f "$TARGET_DIR/$base" ] && \
   $BIN_DIR/busybox sed -i '/print_log_ascii() {/ { n; N; N; N; N; N; N; d; }' "$TARGET_DIR/$base" && \
   $BIN_DIR/busybox sed -i "/print_log_ascii()/r $BIN_DIR/ascii" "$TARGET_DIR/$base"
 done
 
-# Generate ASCII and replace inside windows flasher scripts
+# Generate ASCII and replace in Windows flasher scripts
 rm -f $BIN_DIR/ascii
 $BIN_DIR/figlet -f $BIN_DIR/nancyj.flf -w 100 $value > $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '/^[[:space:]]*$/d' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i 's/^/echo /' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '1s/^/echo.\n/' $BIN_DIR/ascii
-for base in install_forge_windows.bat update_forge_windows.bat; do
+for base in "${bases_windows[@]}"; do
   [ -f "$TARGET_DIR/$base" ] && \
   $BIN_DIR/busybox sed -i '/^:print_ascii[[:space:]]*$/ { n; N; N; N; N; N; N; d; }' "$TARGET_DIR/$base" && \
   $BIN_DIR/busybox sed -i "/^:print_ascii[[:space:]]*$/r $BIN_DIR/ascii" "$TARGET_DIR/$base"
@@ -873,14 +875,15 @@ $BIN_DIR/figlet -f $BIN_DIR/nancyj.flf -w 100 $value > $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '/^[[:space:]]*$/d' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i 's/^/call :log  " /;s/$/"/' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '1s/^/echo.\n/' $BIN_DIR/ascii
-for base in install_forge_windows.bat update_forge_windows.bat; do
+for base in "${bases_windows[@]}"; do
   [ -f "$TARGET_DIR/$base" ] && \
   $BIN_DIR/busybox sed -i '/^:print_log_ascii[[:space:]]*$/ { n; N; N; N; N; N; N; d; }' "$TARGET_DIR/$base" && \
   $BIN_DIR/busybox sed -i "/^:print_log_ascii[[:space:]]*$/r $BIN_DIR/ascii" "$TARGET_DIR/$base"
 done
 
 # Rename auto-insatller scripts file with new rom name
-for base in install_forge_linux.sh update_forge_linux.sh install_forge_windows.bat update_forge_windows.bat; do
+all_bases=("${bases_linux[@]}" "${bases_windows[@]}")
+for base in "${all_bases[@]}"; do
   src="$TARGET_DIR/$base"
   if [ -f "$src" ]; then
     new_name=$(echo -e "$base" | $BIN_DIR/busybox sed "s/forge/$sanitized_name/")
