@@ -50,6 +50,14 @@ on:
           - Kernel Su
           - Sukisu-Ultra
           - No Root
+      format_default:
+        description: 'Select the default behavior when flashing via recovery.'
+        required: true
+        default: 'Dirty Flash (Update only - keeps user data)'
+        type: choice
+        options:
+          - Dirty Flash (Update only - keeps user data)
+          - Clean Flash (Factory reset - wipes all data)
 
 jobs:
   Forge-Auto-Installer:
@@ -74,16 +82,26 @@ jobs:
           echo "Downloaded file: input/$filename"
           echo "filename=$filename" >> $GITHUB_OUTPUT
 
-      - name: Map root_type string to ROOT_TYPE number
+      - name: Map input strings to numbers for updating variables in conf
         run: |
           case "${{ github.event.inputs.root_type }}" in
-            "Kernel Su Next") ROOT_TYPE=1 ;;
-            "Kernel Su") ROOT_TYPE=2 ;;
-            "Sukisu-Ultra") ROOT_TYPE=3 ;;
-            "No Root") ROOT_TYPE=4 ;;
-            *) ROOT_TYPE=1 ;;
+            "Kernel Su Next") ROOT_TYPE=1; ROOT_LABEL="Kernel Su Next" ;;
+            "Kernel Su") ROOT_TYPE=2; ROOT_LABEL="Kernel Su" ;;
+            "Sukisu-Ultra") ROOT_TYPE=3; ROOT_LABEL="Sukisu-Ultra" ;;
+            "No Root") ROOT_TYPE=4; ROOT_LABEL="No Root" ;;
+            *) ROOT_TYPE=1; ROOT_LABEL="Kernel Su Next" ;;
           esac
           echo "ROOT_TYPE=$ROOT_TYPE" >> $GITHUB_ENV
+
+          case "${{ github.event.inputs.format_default }}" in
+            "Dirty Flash (Update only - keeps user data)") FORMAT_MODE=0; FORMAT_LABEL="Dirty Flash (Update only - keeps user data)" ;;
+            "Clean Flash (Factory reset - wipes all data)") FORMAT_MODE=1; FORMAT_LABEL="Clean Flash (Factory reset - wipes all data)" ;;
+            *) FORMAT_MODE=0; FORMAT_LABEL="Update" ;;
+          esac
+          echo "FORMAT_MODE=$FORMAT_MODE" >> $GITHUB_ENV
+
+          echo "Root method selected: $ROOT_LABEL"
+          echo "Format type selected: $FORMAT_LABEL"
 
       - name: Generate autoinstaller.conf
         run: |
@@ -128,6 +146,7 @@ jobs:
             "Root with Magisk v29.0" "magisk_boot" "dtbo"
           )
           
+          FORMAT_DEFAULT=${{ env.FORMAT_MODE }}  # set 1 if want format default selected 
           SELECTION_TIMEOUT=15  # Seconds to wait before auto-selecting default menu option
           CHAR_WIDTH=54  		  # Max characters per printed line (used for text centering and wrapping)
           BANNER_EXIT=" ------------------------Error!------------------------ "  # Banner shown on critical exit or error
