@@ -10,6 +10,10 @@ URL_BUSYBOX="$BASE_URL/bin/linux_arm64/busybox"
 URL_PAYLOAD_DUMPER="$BASE_URL/bin/linux_arm64/payload-dumper-go"
 URL_LPMAKE="$BASE_URL/bin/linux_arm64/lpmake"
 URL_LPUNPACK="$BASE_URL/bin/linux_arm64/lpunpack"
+URL_FIGLET="$BASE_URL/bin/linux_arm64/figlet"
+URL_FONT1="$BASE_URL/bin/figlet_fonts/standard.flf"
+URL_FONT2="$BASE_URL/bin/figlet_fonts/nancyj.flf"
+URL_FONT3="$BASE_URL/bin/figlet_fonts/sblood.flf"
 
 BIN_DIR="/tmp/Auto-Installer-Forge"
 WORK_DIR="/sdcard/Auto-Installer-Forge"
@@ -20,8 +24,7 @@ mkdir -p "$MAGISK_DIR"
 mkdir -p "$WORK_DIR"
 
 log() {
-    echo ""
-    echo "[$(date +"%H:%M:%S")] $1"
+    echo -e -e "\n[$(date +"%H:%M:%S")] $1"
 }
 
 ARCH=$(getprop ro.product.cpu.abi)
@@ -31,23 +34,23 @@ download_and_set_permissions() {
     local url=$1 dest_file=$2
     log "[INFO] Downloading $(basename "$dest_file")..."
     curl -L -# -o "$dest_file" "$url" || { log "[ERROR] Failed to download $(basename "$dest_file")"; exit 1; }
-    chmod 755 "$dest_file"
-    echo "[SUCCESS] $(basename "$dest_file") ready."
+    chmod +x "$dest_file"
+    echo -e "[SUCCESS] $(basename "$dest_file") ready."
 }
 
 # Function to download files without setting permissions
 download_file() {
     local url=$1 dest_file=$2
-    #echo "[INFO] Downloading $(basename "$dest_file")..."
+    #echo -e "[INFO] Downloading $(basename "$dest_file")..."
     curl -L -# -o "$dest_file" "$url" || { log "[ERROR] Failed to download $(basename "$dest_file")"; }
-    echo "[SUCCESS] $(basename "$dest_file") downloaded."
+    echo -e "[SUCCESS] $(basename "$dest_file") downloaded."
 }
 
 # Function to extract checksum from file
 get_checksum() {
     local filename="$1"
     if [ "$CHECKSUM_AVAILABLE" -eq 0 ]; then
-        echo ""
+        echo " "
         return
     fi
     grep "^$filename=" "$CHECKSUM_FILE" | cut -d'=' -f2
@@ -60,12 +63,12 @@ verify_checksum() {
     local expected_checksum="$2"
 
     if [ "$CHECKSUM_AVAILABLE" -eq 0 ]; then
-        #echo "[WARNING] Checksum verification skipped for $(basename "$file")."
+        #echo -e "[WARNING] Checksum verification skipped for $(basename "$file")."
         return 0
     fi
 
     if [ -z "$expected_checksum" ]; then
-        echo "[WARNING] No checksum found for $(basename "$file"), skipping verification."
+        echo -e "[WARNING] No checksum found for $(basename "$file"), skipping verification."
         return 0  # Skip verification if no checksum is available
     fi
 
@@ -73,10 +76,10 @@ verify_checksum() {
     actual_checksum=$($BIN_DIR/busybox sha256sum "$file" | awk '{print $1}')
 
     if [ "$actual_checksum" = "$expected_checksum" ]; then
-        #echo "[SUCCESS] Checksum verified for $(basename "$file")."
+        #echo -e "[SUCCESS] Checksum verified for $(basename "$file")."
         return 0
     else
-        echo "\n[ERROR] Checksum mismatch for $(basename "$file")! Expected: $expected_checksum, Got: $actual_checksum"
+        echo -e "\n[ERROR] Checksum mismatch for $(basename "$file")! Expected: $expected_checksum, Got: $actual_checksum"
         return 1
     fi
 }
@@ -88,7 +91,7 @@ download_with_fallback() {
     DEST_FILE="$3"
     FILE_KEY="$4"  # Key name in checksum file
 
-    #echo "[INFO] Downloading: $(basename "$DEST_FILE")"
+    #echo -e "[INFO] Downloading: $(basename "$DEST_FILE")"
 
     EXPECTED_CHECKSUM=$(get_checksum "$FILE_KEY")
 
@@ -96,11 +99,11 @@ download_with_fallback() {
         if verify_checksum "$DEST_FILE" "$EXPECTED_CHECKSUM"; then
             return 0  # Download successful with valid checksum
         else
-            echo "[WARNING] Checksum mismatch, trying fallback...\n"
+            echo -e "[WARNING] Checksum mismatch, trying fallback...\n"
             rm -f "$DEST_FILE"
         fi
     else
-        echo "[WARNING] Primary download failed, trying fallback...\n"
+        echo -e "[WARNING] Primary download failed, trying fallback...\n"
     fi
 
     # Try downloading from fallback source
@@ -108,11 +111,11 @@ download_with_fallback() {
         if verify_checksum "$DEST_FILE" "$EXPECTED_CHECKSUM"; then
             return 0  # Fallback successful with valid checksum
         else
-            echo "[ERROR] Fallback checksum mismatch! Continuing with warning...\n"
+            echo -e "[ERROR] Fallback checksum mismatch! Continuing with warning...\n"
             return 1
         fi
     else
-        echo "[ERROR] Failed to download $(basename "$DEST_FILE") from both sources! Continuing..."
+        echo -e "[ERROR] Failed to download $(basename "$DEST_FILE") from both sources! Continuing..."
         return 1
     fi
 }
@@ -127,14 +130,7 @@ patch_magisk_boot() {
         return 1
     fi
 
-    case "$ARCH" in
-        arm64-v8a) ARCH_DIR="arm64-v8a" ;;
-        armeabi-v7a) ARCH_DIR="armeabi-v7a" ;;
-        x86) ARCH_DIR="x86" ;;
-        x86_64) ARCH_DIR="x86_64" ;;
-        *) log "[ERROR] Unsupported architecture: $ARCH"; return 1 ;;
-    esac
-
+    ARCH_DIR="arm64-v8a"
     LIB_PATH="$MAGISK_DIR/lib/$ARCH_DIR"
     if [ -d "$LIB_PATH" ]; then
         for file in "$LIB_PATH"/*.so; do
@@ -147,8 +143,40 @@ patch_magisk_boot() {
         return 1
     fi
 
-    chmod -R 777 "$MAGISK_DIR/assets/"
+    LIB_PATH="$MAGISK_DIR/lib/$ARCH"
+    if [ -d "$LIB_PATH" ]; then
+        for file in "$LIB_PATH"/lib{magiskboot,busybox}.so; do
+            [ -f "$file" ] || continue
+            new_name=$(basename "$file" | $BIN_DIR/busybox sed -E 's/^lib(.*)\.so$/\1/')
+            mv "$file" "$MAGISK_DIR/assets/$new_name"
+        done
+    else
+        log "[ERROR] Library folder not found for $ARCH"
+        return 1
+    fi
+    chmod -R +x "$MAGISK_DIR/assets/"
 
+    # Extract API version
+    sdk_version=$(strings "$TARGET_DIR/images/super.img" | grep -m 1 'ro.build.version.sdk=' | cut -d'=' -f2)
+    if [ -z "$sdk_version" ]; then
+    sdk_version=36
+    fi
+    echo -e "API level is: $sdk_version"
+    # Extract ABI version
+    # abi_version=$(strings "$TARGET_DIR/images/super.img" | grep -m 1 'ro.product.cpu.abi=' | cut -d'=' -f2)
+    # if [ -z "$abi_version" ]; then
+    abi_version=arm64-v8a
+    # fi
+    # echo -e "API level is: $abi_version"
+
+    $BIN_DIR/busybox sed -i \
+    -e "s|API=\$(grep_get_prop ro.build.version.sdk)|API=$sdk_version|" \
+    -e "s|ABI=\$(grep_get_prop ro.product.cpu.abi)|ABI=$abi_version|" \
+    "$MAGISK_DIR/assets/util_functions.sh"
+
+    $BIN_DIR/busybox sed -i 's|echo -e "ui_print \$1\\nui_print" >> /proc/self/fd/\$OUTFD|echo -e "\$1"|' "$MAGISK_DIR/assets/util_functions.sh"
+    #$BIN_DIR/busybox sed -i '1 s|^.*$|#!/bin/bash|' "$MAGISK_DIR/assets/boot_patch.sh"
+    $BIN_DIR/busybox sed -i 's/ui_print/echo -e/g' "$MAGISK_DIR/assets/boot_patch.sh"
     # Modify boot_patch.sh to hardcode "sda19" for NABU
     if ! $BIN_DIR/busybox sed -i 's/\$BOOTMODE && \[ -z "\$PREINITDEVICE" \] && PREINITDEVICE=\$(\.\/magisk --preinit-device)/PREINITDEVICE="sda19"/' "$MAGISK_DIR/assets/boot_patch.sh"; then
         log "[ERROR] Failed to modify boot_patch.sh"
@@ -164,7 +192,6 @@ patch_magisk_boot() {
         log "[ERROR] Patching unsuccessful. Please patch manually and add to /images folder..."
         return 1
     fi
-
     return 0
 }
 
@@ -172,17 +199,22 @@ patch_magisk_boot() {
 update_field() {
     field="$1"
     label="$2"
+    direct_value="$3"
+
     line=$(grep "^$field=" "$CONF_FILE")
 
     value=$(echo "$line" | $BIN_DIR/busybox sed -n "s/^$field=\"\([^\"]*\)\".*/\1/p")
 
     comment=$(echo "$line" | $BIN_DIR/busybox sed -n "s/^$field=\"[^\"]*\"[[:space:]]*\(.*\)/\1/p")
 
-    echo "Current $label: $value"
-    printf "Enter new $label (leave blank to keep current): "
-    read new_value
-
-    [ -z "$new_value" ] && new_value="$value"
+    if [ -n "$direct_value" ]; then
+        new_value="$direct_value"
+    else
+        echo -e "Current $label: $value"
+        echo -n "Enter new $label (leave blank to keep current): "
+        read new_value
+        [ -z "$new_value" ] && new_value="$value"
+    fi
 
     escaped_new_value=$(printf '%s\n' "$new_value" | $BIN_DIR/busybox sed 's/[&/\]/\\&/g')
 
@@ -191,12 +223,11 @@ update_field() {
 
     $BIN_DIR/busybox sed -i "s|^$field=.*|$new_line|" "$CONF_FILE"
 
-    echo "$label updated to: $new_value"
-    echo
+    echo -e "$label updated to: $new_value\n"
 }
 
-echo "\nAutomating ROM conversion for easy Fastboot/Recovery flashing for Xiaomi Pad 5 (more devices planned)\n"
-echo "This script is Written and Made By °⊥⋊ɹ∀°, Telegram - '@ArKT_7', Github - 'ArKT-7'\n"
+echo -e "\nAutomating ROM conversion for easy Fastboot/Recovery flashing for Xiaomi Pad 5 (more devices planned)\n"
+echo -e "This script is Written and Made By °⊥⋊ɹ∀°, Telegram - '@ArKT_7', Github - 'ArKT-7'\n"
 
 AVAILABLE_SPACE=$(df "$WORK_DIR" | awk 'NR==2 {print $4}')
 if [ "$AVAILABLE_SPACE" -lt 15000000 ]; then
@@ -209,17 +240,22 @@ download_and_set_permissions "$URL_BUSYBOX" "$BIN_DIR/busybox"
 download_and_set_permissions "$URL_PAYLOAD_DUMPER" "$BIN_DIR/payload-dumper-go"
 download_and_set_permissions "$URL_LPMAKE" "$BIN_DIR/lpmake"
 download_and_set_permissions "$URL_LPUNPACK" "$BIN_DIR/lpunpack"
+download_and_set_permissions "$URL_FIGLET" "$BIN_DIR/figlet"
+download_and_set_permissions "$URL_FONT1" "$BIN_DIR/standard.flf"
+download_and_set_permissions "$URL_FONT2" "$BIN_DIR/nancyj.flf"
+download_and_set_permissions "$URL_FONT3" "$BIN_DIR/sblood.flf"
+
 # URL to the checksum file
 CHECKSUM_FILE="$BIN_DIR/checksum.arkt"
 CHECKSUM_AVAILABLE=1  # Assume checksum is available
 
 # Download checksum file
-#echo "[INFO] Downloading checksum file..."
+#echo -e "[INFO] Downloading checksum file..."
 if ! download_file "$BASE_URL/bin/checksum.arkt" "$CHECKSUM_FILE"; then
-    #echo "[WARNING] Failed to download checksum file. Continuing without checksum verification!"
+    #echo -e "[WARNING] Failed to download checksum file. Continuing without checksum verification!"
     CHECKSUM_AVAILABLE=0  # Set flag to disable checksum verification
 elif ! grep -q "=" "$CHECKSUM_FILE"; then
-    #echo "[WARNING] Checksum file is invalid or empty. Skipping verification!"
+    #echo -e "[WARNING] Checksum file is invalid or empty. Skipping verification!"
     CHECKSUM_AVAILABLE=0  # Mark as unavailable if it's empty or corrupted
 fi
 
@@ -227,17 +263,17 @@ if [ -d "$WORK_DIR" ]; then
     # Check if the directory contains any files or only empty folders
 	if [ -n "$($BIN_DIR/busybox find "$WORK_DIR" -mindepth 1 -type f 2>/dev/null)" ]; then
         while true; do
-            echo "\n[WARNING] Existing files found in $WORK_DIR. Choose an option:\n"
-            echo "1) Delete all existing files from $WORK_DIR and start fresh"
-            echo "2) Move old files to a backup folder"
-            echo "3) Exit script"
+            echo -e "\n[WARNING] Existing files found in $WORK_DIR. Choose an option:\n"
+            echo -e "1) Delete all existing files from $WORK_DIR and start fresh"
+            echo -e "2) Move old files to a backup folder"
+            echo -e "3) Exit script\n"
             read -r choice
 
             case "$choice" in
                 1)
                     log "[INFO] Deleting existing files..."
                     $BIN_DIR/busybox rm -rf "$WORK_DIR"/*
-                    echo "[SUCCESS] Old files deleted."
+                    echo -e "[SUCCESS] Old files deleted."
                     break
                     ;;
                 2)
@@ -246,7 +282,7 @@ if [ -d "$WORK_DIR" ]; then
                     log "[INFO] Moving old files to $BACKUP_DIR..."
                     $BIN_DIR/busybox mkdir -p "$BACKUP_DIR"
                     $BIN_DIR/busybox mv "$WORK_DIR"/* "$BACKUP_DIR"/
-                    echo "[SUCCESS] Files moved to $BACKUP_DIR."
+                    echo -e "[SUCCESS] Files moved to $BACKUP_DIR."
                     break
                     ;;
                 3)
@@ -267,9 +303,7 @@ if [ -d "$WORK_DIR" ]; then
     fi
 fi
 
-echo ""
-echo "Searching for AOSP ROM RECOVERY ZIP files containing payload.bin..."
-echo ""
+echo -e "\nSearching for AOSP ROM RECOVERY ZIP files containing payload.bin...\n"
 # Initialize variables
 count=1
 files=()  # Array to store valid file paths
@@ -300,25 +334,24 @@ rm -f "$temp_file"
 
 # Check if no valid ZIP files were found
 if [ "$count" -eq 1 ]; then
-    echo "No valid AOSP ROM ZIP files found (must contain payload.bin)."
+    echo -e "No valid AOSP ROM ZIP files found (must contain payload.bin)."
     exit 1
 fi
 
 # Automatically select the ZIP file if only one is available
 if [ "$count" -eq 2 ]; then
     SELECTED_ZIP_FILE="${files[1]}"
-    echo ""
-	echo "Only one valid ZIP file found: $(basename "$SELECTED_ZIP_FILE")"
-    echo "Automatically selecting this file."
+	echo -e "\nOnly one valid ZIP file found: $(basename "$SELECTED_ZIP_FILE")"
+    echo -e "Automatically selecting this file."
 else
     # Prompt user for selection if multiple valid ZIPs are found
-    echo ""
-    echo "Enter the serial number of the ZIP file to select:"
+    echo " "
+    echo -n "Enter the serial number of the ZIP file to select: "
     read -r selection
 
     # Validate ZIP file selection
     if [ -z "${files[$selection]}" ]; then
-        echo "Invalid selection. Exiting."
+        echo -e "Invalid selection. Exiting."
         exit 1
     fi
 
@@ -334,19 +367,19 @@ $BIN_DIR/busybox mkdir -p "$TARGET_DIR"
 
 # Unzip only the payload.bin file into the created directory
 echo " "
-echo "Extracting payload.bin"
+echo -e "Extracting payload.bin"
 $BIN_DIR/busybox unzip -o "$SELECTED_ZIP_FILE" "payload.bin" -d "$TARGET_DIR"
 
 # Check if extraction was successful
 if [ ! -f "$TARGET_DIR/payload.bin" ]; then
-    echo "[ERROR] payload.bin not found in the selected ZIP. Exiting."
+    echo -e "[ERROR] payload.bin not found in the selected ZIP. Exiting."
     exit 1
 fi
 
 # Store the extracted payload.bin path in $PAYLOAD_FILE
 PAYLOAD_FILE="$TARGET_DIR/payload.bin"
 
-echo "payload.bin extraction complete."
+echo -e "payload.bin extraction complete."
 
 log "[INFO] Extracting payload.bin..."
 echo " "
@@ -354,56 +387,83 @@ $BIN_DIR/payload-dumper-go -o "$TARGET_DIR" "$PAYLOAD_FILE" || { log "[ERROR] Ex
 log "[SUCCESS] Extraction completed."
 
 log "[INFO] Generating original checksums..."
-for img in system vendor odm system_ext product; do
-    $BIN_DIR/busybox mv "$TARGET_DIR/${img}.img" "$TARGET_DIR/${img}_a.img"
+for img in system vendor mi_ext odm system_ext product; do
+    if [ -f "$TARGET_DIR/${img}.img" ]; then
+        $BIN_DIR/busybox mv "$TARGET_DIR/${img}.img" "$TARGET_DIR/${img}_a.img"
+    fi
 done
-$BIN_DIR/busybox sha256sum "$TARGET_DIR/system_a.img" "$TARGET_DIR/vendor_a.img" "$TARGET_DIR/odm_a.img" "$TARGET_DIR/system_ext_a.img" "$TARGET_DIR/product_a.img" > "$TARGET_DIR/original_checksums.txt"
-echo "[SUCCESS] Checksums generated."
+checksum_files=()
+for img in system vendor mi_ext odm system_ext product; do
+    if [ -f "$TARGET_DIR/${img}_a.img" ]; then
+        checksum_files+=("$TARGET_DIR/${img}_a.img")
+    fi
+done
+$BIN_DIR/busybox sha256sum "${checksum_files[@]}" > "$TARGET_DIR/original_checksums.txt"
+echo -e "[SUCCESS] Checksums generated."
 
 log "[INFO] Calculating total partition size with buffer..."
-TOTAL_SIZE=$($BIN_DIR/busybox du -b "$TARGET_DIR/system_a.img" "$TARGET_DIR/vendor_a.img" "$TARGET_DIR/odm_a.img" "$TARGET_DIR/system_ext_a.img" "$TARGET_DIR/product_a.img" | $BIN_DIR/busybox awk '{sum += $1} END {print sum + (24 * 1024 * 1024); exit}')
-echo "Total size (with buffer): $TOTAL_SIZE"
+TOTAL_SIZE=$($BIN_DIR/busybox du -b "${checksum_files[@]}" | $BIN_DIR/busybox awk '{sum += $1} END {print sum + (24 * 1024 * 1024); exit}')
+echo -e "Total size (with buffer): $TOTAL_SIZE"
 
 log "[INFO] Creating super.img..."
-echo ""
+echo " "
+partition_args=()
+group_a="super_group_a"
+group_b="super_group_b"
+
+add_partition() {
+    local part_name=$1
+    local img_path=$2
+    local part_size=$(wc -c <"$img_path")
+    partition_args+=(--partition "${part_name}_a:readonly:${part_size}:${group_a}")
+    partition_args+=(--image "${part_name}_a=${img_path}")
+    partition_args+=(--partition "${part_name}_b:readonly:0:${group_b}")
+}
+
+if [ -f "$TARGET_DIR/mi_ext_a.img" ]; then
+    add_partition "mi_ext" "$TARGET_DIR/mi_ext_a.img"
+fi
+for img in odm product system system_ext vendor; do
+    if [ -f "$TARGET_DIR/${img}_a.img" ]; then
+        add_partition "$img" "$TARGET_DIR/${img}_a.img"
+    fi
+done
 $BIN_DIR/lpmake \
---metadata-size 65536 \
---metadata-slots 3 \
---device super:9126805504 \
---super-name super \
---group super_group_a:9126805504 \
---group super_group_b:9126805504 \
---partition odm_a:readonly:$(wc -c <"$TARGET_DIR/odm_a.img"):super_group_a --image odm_a="$TARGET_DIR/odm_a.img" \
---partition odm_b:readonly:0:super_group_b \
---partition product_a:readonly:$(wc -c <"$TARGET_DIR/product_a.img"):super_group_a --image product_a="$TARGET_DIR/product_a.img" \
---partition product_b:readonly:0:super_group_b \
---partition system_a:readonly:$(wc -c <"$TARGET_DIR/system_a.img"):super_group_a --image system_a="$TARGET_DIR/system_a.img" \
---partition system_b:readonly:0:super_group_b \
---partition system_ext_a:readonly:$(wc -c <"$TARGET_DIR/system_ext_a.img"):super_group_a --image system_ext_a="$TARGET_DIR/system_ext_a.img" \
---partition system_ext_b:readonly:0:super_group_b \
---partition vendor_a:readonly:$(wc -c <"$TARGET_DIR/vendor_a.img"):super_group_a --image vendor_a="$TARGET_DIR/vendor_a.img" \
---partition vendor_b:readonly:0:super_group_b \
---virtual-ab \
---output "$TARGET_DIR/super.img"
+    --metadata-size 65536 \
+    --metadata-slots 3 \
+    --device super:9126805504 \
+    --super-name super \
+    --group ${group_a}:9126805504 \
+    --group ${group_b}:9126805504 \
+    "${partition_args[@]}" \
+    --virtual-ab \
+    --output "$TARGET_DIR/super.img"
 
 log "[SUCCESS] super.img created."
 
 log "[INFO] Truncating super.img..."
 $BIN_DIR/busybox truncate -s "$TOTAL_SIZE" "$TARGET_DIR/super.img"
-echo "[SUCCESS] Truncation complete."
+echo -e "[SUCCESS] Truncation complete."
 
-log "[INFO] Cleaning up payload.bin extrated img's..."
-$BIN_DIR/busybox rm -f "$TARGET_DIR/system_a.img" "$TARGET_DIR/vendor_a.img" "$TARGET_DIR/odm_a.img" "$TARGET_DIR/system_ext_a.img" "$TARGET_DIR/product_a.img" "$PAYLOAD_FILE" 
-echo "[SUCCESS] Cleanup complete."
+log "[INFO] Cleaning up payload.bin extracted img's..."
+rm_files=("${checksum_files[@]}" "$PAYLOAD_FILE")
+$BIN_DIR/busybox rm -f "${rm_files[@]}"
+echo -e "[SUCCESS] Cleanup complete."
 
 log "[INFO] Extracting super.img..."
 $BIN_DIR/busybox mkdir -p "$TARGET_DIR/super_extracted"
 $BIN_DIR/lpunpack "$TARGET_DIR/super.img" "$TARGET_DIR/super_extracted" || { log "[ERROR] Extraction failed!"; exit 1; }
-echo "[SUCCESS] super.img extracted."
+echo -e "[SUCCESS] super.img extracted."
 
 log "[INFO] Generating new checksums..."
-$BIN_DIR/busybox sha256sum "$TARGET_DIR/super_extracted/system_a.img" "$TARGET_DIR/super_extracted/vendor_a.img" "$TARGET_DIR/super_extracted/odm_a.img" "$TARGET_DIR/super_extracted/system_ext_a.img" "$TARGET_DIR/super_extracted/product_a.img" > "$TARGET_DIR/new_checksums.txt"
-echo "[SUCCESS] Checksums generated."
+new_checksum_files=()
+for img in system vendor mi_ext odm system_ext product; do
+    if [ -f "$TARGET_DIR/super_extracted/${img}_a.img" ]; then
+        new_checksum_files+=("$TARGET_DIR/super_extracted/${img}_a.img")
+    fi
+done
+$BIN_DIR/busybox sha256sum "${new_checksum_files[@]}" > "$TARGET_DIR/new_checksums.txt"
+echo -e "[SUCCESS] Checksums generated."
 
 log "[INFO] Normalizing checksums for comparison..."
 $BIN_DIR/busybox sed -E "s|(_a)?\.img|.img|" "$TARGET_DIR/original_checksums.txt" | $BIN_DIR/busybox sed -E "s|$TARGET_DIR|/tmp|" > "$TARGET_DIR/original_checksums_norm.txt"
@@ -411,14 +471,14 @@ $BIN_DIR/busybox sed -E "s|(_a)?\.img|.img|" "$TARGET_DIR/new_checksums.txt" | $
 
 log "[INFO] Comparing checksums..."
 $BIN_DIR/busybox diff "$TARGET_DIR/original_checksums_norm.txt" "$TARGET_DIR/new_checksums_norm.txt" || log "[WARNING] Checksum mismatch detected!"
-echo "[SUCCESS] Checksum comparison complete."
+echo -e "[SUCCESS] Checksum comparison complete."
 
 log "[COMPLETED] super.img prepared to use in fastboot/recovery!"
 
 log "[INFO] Cleaning up..."
 $BIN_DIR/busybox rm -rf "$TARGET_DIR/super_extracted"
 $BIN_DIR/busybox rm -f "$TARGET_DIR/original_checksums.txt" "$TARGET_DIR/new_checksums.txt" "$TARGET_DIR/original_checksums_norm.txt" "$TARGET_DIR/new_checksums_norm.txt" 
-echo "[SUCCESS] Cleanup complete."
+echo -e "[SUCCESS] Cleanup complete."
 
 log "[INFO] Now will contrust folder/files and Download Scripts as required for Auto Installer!\n"
 
@@ -429,9 +489,7 @@ $BIN_DIR/busybox mkdir -p "$TARGET_DIR/bin/windows/platform-tools"
 $BIN_DIR/busybox mkdir -p "$TARGET_DIR/bin/windows/log-tool" 
 $BIN_DIR/busybox mkdir -p "$TARGET_DIR/bin/linux/platform-tools" 
 $BIN_DIR/busybox mkdir -p "$TARGET_DIR/ROOT_APK_INSATLL_THIS_ONLY"
-for img in boot dtbo vendor_boot vbmeta vbmeta_system super; do
-    $BIN_DIR/busybox mv "$TARGET_DIR/${img}.img" "$TARGET_DIR/images/${img}.img"
-done
+$BIN_DIR/busybox mv "$TARGET_DIR"/*.img "$TARGET_DIR/images/"
 
 #still gotta upload to mirror location for fallback
 download_with_fallback \
@@ -543,7 +601,7 @@ download_with_fallback \
     "$TARGET_DIR/bin/linux/platform-tools-linux.zip" \
     "platform-tools-latest-linux.zip"
 	
-echo "[INFO] Extracting Linux platform-tools..."
+echo -e "[INFO] Extracting Linux platform-tools..."
 $BIN_DIR/busybox unzip -q "$TARGET_DIR/bin/linux/platform-tools-linux.zip" -d "$TARGET_DIR/bin/linux/"
 log "[SUCCESS] Linux platform-tools extracted.\n"
 
@@ -553,7 +611,7 @@ download_with_fallback \
     "$TARGET_DIR/bin/windows/platform-tools-windows.zip" \
     "platform-tools-latest-windows.zip"
 
-echo "[INFO] Extracting Windows platform-tools..."
+echo -e "[INFO] Extracting Windows platform-tools..."
 $BIN_DIR/busybox unzip -q "$TARGET_DIR/bin/windows/platform-tools-windows.zip" -d "$TARGET_DIR/bin/windows/"
 log "[SUCCESS] Windows platform-tools extracted.\n"
 
@@ -563,11 +621,11 @@ download_with_fallback \
     "$TARGET_DIR/bin/windows/tee.zip" \
     "tee-win32.2023-11-27.zip"
 	
-echo "[INFO] Extracting tee for logging in windows..."
+echo -e "[INFO] Extracting tee for logging in windows..."
 $BIN_DIR/busybox unzip -q "$TARGET_DIR/bin/windows/tee.zip" -d "$TARGET_DIR/bin/windows/log-tool/"
 log "[SUCCESS] TEE for windows extracted."
 
-log "[INFO] Now will Download KernelSU NEXT and Magisk APK for ROOT access!\n[NOTE] Manually Add Patched ksu-n_boot.img in /images folder and add options to autoinstaller.conf file\n"
+log "[INFO] Now will Download KernelSU NEXT and Magisk APK for ROOT access!\n"
 
 download_with_fallback \
     "https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.1.1/KernelSU_Next_v1.1.1_12851-release.apk" \
@@ -607,7 +665,15 @@ $BIN_DIR/busybox sed -i '/^HASH_PAIRS=(/,/^)/ {
 # Insert new hashes
 $BIN_DIR/busybox sed -i "/^HASH_PAIRS=(/r $tmp_hashes" "$CONF_FILE"
 
-#echo "[INFO] HASH_PAIRS inside autoinstaller.conf block updated with current img's in images folder"
+#echo -e "[INFO] HASH_PAIRS inside autoinstaller.conf block updated with current img's in images folder"
+
+# Extract build date
+log "[INFO] Extracting build date from ROM..\n"
+raw_build_date=$(strings "$TARGET_DIR/images/super.img" | grep -m 1 'build.date=' | cut -d'=' -f2)
+parsed_input=$(echo "$raw_build_date" | $BIN_DIR/busybox sed -E 's/ [A-Z]{3} / /')
+parsed_build_date=$($BIN_DIR/busybox date -d "$parsed_input" -D "%a %b %d %T %Y" +"%d %b %Y")
+echo -e "Parsed date: $parsed_build_date"
+update_field "BUILD_DATE" "Build date" "$parsed_build_date"
 
 log "[SUCCESS] Auto-Installer-Forge files processing finished!\n"
 
@@ -622,26 +688,142 @@ update_field "DEVICE_NAME" "Device name"
 update_field "BUILD_DATE" "Build date"
 update_field "SECURITY_PATCH" "Security patch"
 update_field "ROM_VERSION" "ROM Build version"
+echo -e "\nChoose root method present in ROM:\n"
+echo -e "1) With root (KSU-N - Kernel SU NEXT)"
+echo -e "2) With root (KSU - Kernel SU)"
+echo -e "3) With root (SukiSU-Ultra)"
+echo -e "4) Without root\n"
+while true; do
+echo -n "Enter the number (1-4): "
+read -r ROOT_TYPE
+case $ROOT_TYPE in
+    [1-4]) echo; break ;;
+    *) echo -e "Invalid input. Please enter a number between 1 and 4.\n" ;;
+esac
+done
 
-# Extract ROM_NAME line from config
+echo -e "\nChoose the default behavior when flashing ROM via recovery:\n"
+echo -e "1) Dirty Flash (Update only - keeps user data)"
+echo -e "2) Clean Flash (Factory reset - wipes all data)\n"
+while true; do
+echo -n "Enter the number (1-2): "
+read -r FORMAT_MODE
+case $FORMAT_MODE in
+    1|2) echo; break ;;
+    *) echo -e "Invalid input. Please enter 1 or 2.\n" ;;
+esac
+done
+[ "$FORMAT_MODE" -eq 1 ] && FORMAT_MODE=0 || FORMAT_MODE=1
+$BIN_DIR/busybox sed -i "s/^FORMAT_DEFAULT=.*/FORMAT_DEFAULT=$FORMAT_MODE  # set 1 if want format default selected/" "$CONF_FILE"
+
+case "$ROOT_TYPE" in
+1) root="Root with (KSU-N - Kernel SU NEXT)" ;;
+2) root="Root with (KSU - Kernel SU)" ;;
+3) root="Root with (SukiSU-Ultra)" ;;
+4) root="Without root" ;;
+*) root="Root with (KSU-N - Kernel SU NEXT)" ;;
+esac
+
+bases_linux=(install_forge_linux.sh update_forge_linux.sh)
+bases_windows=(install_forge_windows.bat update_forge_windows.bat)
+
+# Update root method in Linux flasher scripts
+$BIN_DIR/busybox sed -i "s|Root with idk|$root|g" "$CONF_FILE"
+for base in "${bases_linux[@]}"; do
+  [ -f "$TARGET_DIR/$base" ] && \
+  $BIN_DIR/busybox sed -i "s/^root=\".*\"/root=\"$root\"/" "$TARGET_DIR/$base"
+done
+# Update root method in Windows flasher scripts
+for base in "${bases_windows[@]}"; do
+  [ -f "$TARGET_DIR/$base" ] && \
+  $BIN_DIR/busybox sed -i "s/^set root=.*/set root=$root/" "$TARGET_DIR/$base"
+done
+
+# Extract Rom Maintainer value from config
+maintainer=$(grep '^ROM_MAINTAINER=' "$CONF_FILE" | sed -n 's/^ROM_MAINTAINER="\([^"]*\)".*/\1/p')
+
+# Update Maintainer value in Linux flasher scripts
+for base in "${bases_linux[@]}"; do
+  [ -f "$TARGET_DIR/$base" ] && \
+  $BIN_DIR/busybox sed -i "s/^ROM_MAINTAINER=\".*\"/ROM_MAINTAINER=\"$maintainer\"/" "$TARGET_DIR/$base"
+done
+# Update Maintainer value in Windows flasher scripts
+for base in "${bases_windows[@]}"; do
+  [ -f "$TARGET_DIR/$base" ] && \
+  $BIN_DIR/busybox sed -i "s/^set ROM_MAINTAINER=.*/set ROM_MAINTAINER=$maintainer/" "$TARGET_DIR/$base"
+done
+
+# Extract ROM Name value from config
 line=$(grep "^ROM_NAME=" "$CONF_FILE")
 
 # Extract value and optional comment
 value=$(echo "$line" | $BIN_DIR/busybox sed -n 's/^ROM_NAME="\([^"]*\)".*/\1/p')
-comment=$(echo "$line" | $BIN_DIR/busybox sed -n 's/^ROM_NAME="[^"]*"[[:space:]]*\(.*\)/\1/p')
-#echo "Current ROM Name: $value"
-#echo "Sanitized: $(echo "$value" | $BIN_DIR/busybox tr ' ' '_' | $BIN_DIR/busybox tr -cd '[:alnum:]_-')"
+#comment=$(echo "$line" | $BIN_DIR/busybox sed -n 's/^ROM_NAME="[^"]*"[[:space:]]*\(.*\)/\1/p')
+#echo -e "Current ROM Name: $value"
+#echo -e "Sanitized: $(echo "$value" | $BIN_DIR/busybox tr ' ' '_' | $BIN_DIR/busybox tr -cd '[:alnum:]_-')"
 
 # Sanitize ROM name by removing non-alphanum and replace space with _ underscore
 sanitized_name=$(echo "$value" | $BIN_DIR/busybox tr ' ' '_' | $BIN_DIR/busybox tr -cd '[:alnum:]_-')
 
+# Generate ASCII and replace in autoinstaller.conf
+$BIN_DIR/figlet -f $BIN_DIR/standard.flf -w 100 $value > $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i 's#\\#\\\\#g' $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i 's/^/"/;s/$/"/' $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i '/ASCII_ART_LINES=(/,/^)/ { /ASCII_ART_LINES=(/!{/^)/!d } }' "$CONF_FILE"
+$BIN_DIR/busybox sed -i "/ASCII_ART_LINES=(/r $BIN_DIR/ascii" "$CONF_FILE"
+
+# Generate ASCII and replace in Linux flasher scripts
+rm -f $BIN_DIR/ascii
+$BIN_DIR/figlet -f $BIN_DIR/nancyj.flf -w 100 $value > $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i '/^[[:space:]]*$/d' $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i 's/^/    echo -e " /;s/$/"/' $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i '1s/^/    echo\n/' $BIN_DIR/ascii
+for base in "${bases_linux[@]}"; do
+  [ -f "$TARGET_DIR/$base" ] && \
+  $BIN_DIR/busybox sed -i '/print_ascii() {/ { n; N; N; N; N; N; N; d; }' "$TARGET_DIR/$base" && \
+  $BIN_DIR/busybox sed -i "/print_ascii()/r $BIN_DIR/ascii" "$TARGET_DIR/$base"
+done
+rm -f $BIN_DIR/ascii
+$BIN_DIR/figlet -f $BIN_DIR/nancyj.flf -w 100 $value > $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i '/^[[:space:]]*$/d' $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i 's/^/    echo -e " /;s/$/" | tee -a "$log_file"/' $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i '1s/^/    echo\n/' $BIN_DIR/ascii
+for base in "${bases_linux[@]}"; do
+  [ -f "$TARGET_DIR/$base" ] && \
+  $BIN_DIR/busybox sed -i '/print_log_ascii() {/ { n; N; N; N; N; N; N; d; }' "$TARGET_DIR/$base" && \
+  $BIN_DIR/busybox sed -i "/print_log_ascii()/r $BIN_DIR/ascii" "$TARGET_DIR/$base"
+done
+
+# Generate ASCII and replace in Windows flasher scripts
+rm -f $BIN_DIR/ascii
+$BIN_DIR/figlet -f $BIN_DIR/nancyj.flf -w 100 $value > $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i '/^[[:space:]]*$/d' $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i 's/^/echo /' $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i '1s/^/echo.\n/' $BIN_DIR/ascii
+for base in "${bases_windows[@]}"; do
+  [ -f "$TARGET_DIR/$base" ] && \
+  $BIN_DIR/busybox sed -i '/^:print_ascii[[:space:]]*$/ { n; N; N; N; N; N; N; d; }' "$TARGET_DIR/$base" && \
+  $BIN_DIR/busybox sed -i "/^:print_ascii[[:space:]]*$/r $BIN_DIR/ascii" "$TARGET_DIR/$base"
+done
+rm -f $BIN_DIR/ascii
+$BIN_DIR/figlet -f $BIN_DIR/nancyj.flf -w 100 $value > $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i '/^[[:space:]]*$/d' $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i 's/^/call :log  " /;s/$/"/' $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i '1s/^/echo.\n/' $BIN_DIR/ascii
+for base in "${bases_windows[@]}"; do
+  [ -f "$TARGET_DIR/$base" ] && \
+  $BIN_DIR/busybox sed -i '/^:print_log_ascii[[:space:]]*$/ { n; N; N; N; N; N; N; d; }' "$TARGET_DIR/$base" && \
+  $BIN_DIR/busybox sed -i "/^:print_log_ascii[[:space:]]*$/r $BIN_DIR/ascii" "$TARGET_DIR/$base"
+done
+
 # Rename auto-insatller scripts file with new rom name
-for base in install_forge_linux.sh update_forge_linux.sh install_forge_windows.bat update_forge_windows.bat; do
+all_bases=("${bases_linux[@]}" "${bases_windows[@]}")
+for base in "${all_bases[@]}"; do
   src="$TARGET_DIR/$base"
   if [ -f "$src" ]; then
     new_name=$(echo "$base" | $BIN_DIR/busybox sed "s/forge/$sanitized_name/")
     $BIN_DIR/busybox mv "$src" "$TARGET_DIR/$new_name"
-    #echo "Renamed: $base → $new_name"
+    #echo -e "Renamed: $base → $new_name"
   fi
 done
 
@@ -659,7 +841,7 @@ log "[INFO] Cleaning up..."
 $BIN_DIR/busybox rm -f "$tmp_hashes" "$TARGET_DIR/bin/linux/platform-tools-linux.zip" "$TARGET_DIR/bin/windows/platform-tools-windows.zip" "$TARGET_DIR/bin/windows/tee.zip"
 cd
 rm -rf $BIN_DIR
-echo "[SUCCESS] Cleanup complete."
+echo -e "[SUCCESS] Cleanup complete."
 
 log "[NOTE] you can also change configrations in META-INF/autoinstaller.conf file anytime!"
 log "[COMPLETED] Auto-Installer-Forge process finished successfully!\n"
