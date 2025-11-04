@@ -831,9 +831,17 @@ $BIN_DIR/busybox sed -i 's/^/"/;s/$/"/' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '/ASCII_ART_LINES=(/,/^)/ { /ASCII_ART_LINES=(/!{/^)/!d } }' "$CONF_FILE"
 $BIN_DIR/busybox sed -i "/ASCII_ART_LINES=(/r $BIN_DIR/ascii" "$CONF_FILE"
 
+# derp it...
+lowercase_derp=$(echo "$value" | $BIN_DIR/busybox tr '[:upper:]' '[:lower:]')
+if echo "$lowercase_derp" | $BIN_DIR/busybox grep -q "derp"; then
+    FIGLET_FONT="$BIN_DIR/sblood.flf"
+else
+    FIGLET_FONT="$BIN_DIR/nancyj.flf"
+fi
+
 # Generate ASCII and replace in Linux flasher scripts
 rm -f $BIN_DIR/ascii
-$BIN_DIR/figlet -f $BIN_DIR/nancyj.flf -w 100 $value > $BIN_DIR/ascii
+$BIN_DIR/figlet -f $FIGLET_FONT -w 100 $value > $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '/^[[:space:]]*$/d' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i 's/^/    echo -e " /;s/$/"/' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '1s/^/    echo\n/' $BIN_DIR/ascii
@@ -843,9 +851,9 @@ for base in "${bases_linux[@]}"; do
   $BIN_DIR/busybox sed -i "/print_ascii()/r $BIN_DIR/ascii" "$TARGET_DIR/$base"
 done
 rm -f $BIN_DIR/ascii
-$BIN_DIR/figlet -f $BIN_DIR/nancyj.flf -w 100 $value > $BIN_DIR/ascii
+$BIN_DIR/figlet -f $FIGLET_FONT -w 100 $value > $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '/^[[:space:]]*$/d' $BIN_DIR/ascii
-$BIN_DIR/busybox sed -i 's/^/    echo -e " /;s/$/" | tee -a "$log_file"/' $BIN_DIR/ascii
+$BIN_DIR/busybox sed -i 's/^/    echo -e " /;s/$/\" | tee -a "$log_file"/' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '1s/^/    echo\n/' $BIN_DIR/ascii
 for base in "${bases_linux[@]}"; do
   [ -f "$TARGET_DIR/$base" ] && \
@@ -855,7 +863,7 @@ done
 
 # Generate ASCII and replace in Windows flasher scripts
 rm -f $BIN_DIR/ascii
-$BIN_DIR/figlet -f $BIN_DIR/nancyj.flf -w 100 $value > $BIN_DIR/ascii
+$BIN_DIR/figlet -f $FIGLET_FONT -w 100 $value > $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '/^[[:space:]]*$/d' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i 's/^/echo /' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '1s/^/echo.\n/' $BIN_DIR/ascii
@@ -865,7 +873,7 @@ for base in "${bases_windows[@]}"; do
   $BIN_DIR/busybox sed -i "/^:print_ascii[[:space:]]*$/r $BIN_DIR/ascii" "$TARGET_DIR/$base"
 done
 rm -f $BIN_DIR/ascii
-$BIN_DIR/figlet -f $BIN_DIR/nancyj.flf -w 100 $value > $BIN_DIR/ascii
+$BIN_DIR/figlet -f $FIGLET_FONT -w 100 $value > $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '/^[[:space:]]*$/d' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i 's/^/call :log  " /;s/$/"/' $BIN_DIR/ascii
 $BIN_DIR/busybox sed -i '1s/^/echo.\n/' $BIN_DIR/ascii
