@@ -43,7 +43,7 @@ su -c "cd / && mkdir -p /tmp/Auto-Installer-Forge && cd /tmp/Auto-Installer-Forg
 
 ### 😂 Windows (WIP)
 
-**Copy and paste in `Windows Terminal` or `PowerShell`:**
+**~~Copy and paste in `Windows Terminal` or `PowerShell`~~: Soon TM 🤔 (idk)...**
 
 ```powershell
 powershell.exe -C "irm https://raw.githubusercontent.com/arkt-7/Auto-Installer-Forge/main/auto_installer.ps1 | iex"
