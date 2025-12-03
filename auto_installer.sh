@@ -682,13 +682,13 @@ download_with_fallback \
     "KernelSU_Next_v1.1.1.apk"
 
 download_with_fallback \
-    "https://github.com/topjohnwu/Magisk/releases/download/v30.6/Magisk-v30.6.apk" \
-    "$BASE_URL/files/Magisk_v30.6.apk" \
-    "$TARGET_DIR/ROOT_APK_INSATLL_THIS_ONLY/Magisk_v30.6.apk" \
-    "Magisk-v30.6.apk"
+    "https://github.com/topjohnwu/Magisk/releases/download/v29.0/Magisk-v29.0.apk" \
+    "$BASE_URL/files/Magisk_v29.0.apk" \
+    "$TARGET_DIR/ROOT_APK_INSATLL_THIS_ONLY/Magisk_v29.0.apk" \
+    "Magisk-v29.0.apk"
 
 # Call the funtion with magisk apk name
-patch_magisk_boot "Magisk_v30.6.apk"
+patch_magisk_boot "Magisk_v29.0.apk"
 
 CONF_FILE="$TARGET_DIR/META-INF/autoinstaller.conf"
 if [ -n "$2" ] && [ -f "$2" ]; then

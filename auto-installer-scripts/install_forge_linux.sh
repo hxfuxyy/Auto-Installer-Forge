@@ -199,7 +199,7 @@ while true; do
     echo -e "${YELLOW}Choose installation method:${RESET}" | tee -a "$log_file"
     echo
     echo -e "${YELLOW}1.${RESET} $root"
-    echo -e "${YELLOW}2.${RESET} Root with (Magisk v30.6)"
+    echo -e "${YELLOW}2.${RESET} Root with (Magisk v29.0)"
     echo -e "${YELLOW}3.${RESET} Cancel Flashing ROM"
     echo
     read -p "Enter option (1, 2 or 3): " install_choice
@@ -226,7 +226,7 @@ while true; do
             print_ascii
             print_note
             echo
-            echo -e "${YELLOW}Starting installation with Magisk v30.6...${RESET}" | tee -a "$log_file"
+            echo -e "${YELLOW}Starting installation with Magisk v29.0...${RESET}" | tee -a "$log_file"
             $fastboot set_active a  2>&1 | tee -a "$log_file"
 			echo
             FlashPartition boot magisk_boot.img
